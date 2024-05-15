@@ -67,7 +67,6 @@ def change021_txt(mid, file_name):
                 track_delta_time[0] = 0
             else:
                 track_delta_time[-1] = 0
-            
             num_channel += 1
         elif msg.channel in channel_list: 
             time_stemp += msg.time
@@ -115,15 +114,16 @@ def standardrize(path):
         if files.endswith('.mid'):
             file_name = files[0:-4]
             mid = MidiFile(file)
-            print(f'{file_name}')
+            # print(f'{file_name}')
             if mid.type == 0:
-                print('Type 0')
+                # print('Type 0')
                 change021(mid, file_name)
             elif mid.type == 1:
-                print('Type 1')
+                # print('Type 1')
                 pre_process_type_1(mid, file_name)
             elif mid.type == 2:
-                print(f'Ignoring {files} as it is type 2')
+                # print(f'Ignoring {files} as it is type 2')
+                pass
         elif files.endswith('.midi'):
             file_name = files[0:-5]
             mid = MidiFile(file)
@@ -132,19 +132,18 @@ def standardrize(path):
             elif mid.type == 1:
                 pre_process_type_1(mid, file_name)
             elif mid.type == 2:
-                print(f'Ignoring {files} as it is type 2')
+                # print(f'Ignoring {files} as it is type 2')
+                pass
 
 
 """
 TODO: 
-Write script to standarize all the midi files in a directory and write the text file in another one.
 Write a reversed translation code from txt files to midi files
 
 Read Jazz Transformer
 Do encoder stuff
-
-
 """
 
 if __name__ == '__main__':
-    
+    path = 'midi_files'
+    standardrize(path)
