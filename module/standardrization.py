@@ -1,14 +1,65 @@
-from mido import MidiFile, midifiles
+from mido import MidiFile, midifiles, MetaMessage
 import os
 
 """
-This is use to standarize the data into type 1 format
+TOKENS Explanations
+
+###
+MESSAGE: The message that is being sent
+
+### WHAT?
+NOTE_ON: Specify the beginning of the note (0)
+NOTE_OFF: Specify the end of the note (Sending a note_on with velocity = 0 is considered a note_off) (1)
+CONTROL_CHANGE: For uses in pedals and stuffs (2)
+
+### WHICH?
+NOTE: Which note do I play
+CONTROL: Which control am I using (NOOOOOO NONE OF THE DATASETS HAS THIS)
+
+### HOW?
+VELOCITY: How hard the note is played
+VALUE: How should I use it? (NOOOOOO NONE OF THE DATASETS HAS THIS)
+
+### WHEN?
+DELTA_TIME: Specify when it starts after the previous message
+
+PIECE_START: DENOTE THE START OF THE PIECE
+TRACK_START: DENOTE THE START OF A TRACK IN A PIECE
+TRACK_END: DENOTE THE END OF A TRACK IN A PIECE
+BAR_START:
+BAR_END:
+TIME_SHIFT: Can use in place of DELTA_TIME
+
+INSTRUMENT: Specify the instrument of choice
+
+FILL_PLACEHOLDER: Notify the model where to fill in the blanks
+
+FILL_START: 
+FILL_END: 
 """
+
+
+TOKENS = ['[MESSAGE]','[WHAT]','[WHICH]', '[HOW]',
+          '[WHERE]','[DELTA_TIME]','[PIECE_START]',
+          '[TRACK_START]', '[TRACK_END]','[BAR_START]',
+          '[BAR_END]','[TIME_SHIFT]', '[INSTRUMENT]',
+          '[FILL_PLACEHOLDER]','[FILL_START]', '[FILL_END]']
+
+
 
 """
 preprocess the type 1 data
-
 """
+
+message_dict = {
+    'note_on': 0,
+    'note_off': 1,
+    'control_change': 2,
+    'polytouch': 3,
+    'pitchwheel': 4,
+    'aftertouch': 5,
+}
+
 def pre_process_type_1(mid, file_name):
     #Save into a text file which is easy to read
     #Make a new directory to save the text file
@@ -16,14 +67,53 @@ def pre_process_type_1(mid, file_name):
         os.makedirs('txt_out', exist_ok=True)
 
     with open(f'txt_out/{file_name}.txt', 'w+') as file:
+        #Add the piece start token
+        file.write('[PIECE_START]\n')
         for i, track in enumerate(mid.tracks):
+            file.write('[TRACK_START]\n')
             file.write('Track {}: {}\n'.format(i, track.name))
+            #Add the track start token
             for msg in track:
-                file.write(str(msg) + '\n')
+                if isinstance(msg,MetaMessage):
+                    file.write(str(msg) + '\n')
+                else:
+                    try:
+                        if msg.channel == 9: #If the channel is 9, it is a percussion instrument
+                            if msg.type == 'program_change':
+                                message = f'[INSTRUMENT] {msg.program}.'
+                                file.write(message + '\n')
+                        else:
+                            if msg.type == 'program_change':
+                                message = f'[INSTRUMENT] {msg.program}'
+                                file.write(message + '\n')
+
+                        if msg.type == 'note_on':
+                            message = '0 {} {} {}'.format(msg.note, msg.velocity, msg.time)
+                            file.write(message + '\n')
+                        elif msg.type == 'note_off':
+                            message = '1 {} {} {}'.format(msg.note, msg.velocity, msg.time)
+                            file.write(message + '\n')
+                        elif msg.type == 'control_change':
+                            message = '2 {} {} {}'.format(msg.control, msg.value, msg.time)
+                            file.write(message + '\n')
+                        elif msg.type == 'polytouch':
+                            message = '3 {} {} {}'.format(msg.note, msg.value, msg.time)
+                            file.write(message + '\n')
+                        elif msg.type == 'pitchwheel':
+                            message = '4 {} {}'.format(msg.pitch, msg.time)
+                            file.write(message + '\n')
+                        elif msg.type == 'aftertouch':
+                            message = '5 {} {}'.format(msg.value, msg.time)
+                            file.write(message + '\n')
+                    except:
+                        file.write(str(msg) + '\n')
+                        
+            #Add the track end token
+            file.write('[TRACK_END]\n')
+
 
 """
 process the type 0 data to txt file similar to type 1 and saved a type 1 version of the midifile
-
 """
 
 def change021_txt(mid, file_name):
@@ -79,6 +169,7 @@ def change021_txt(mid, file_name):
                     msg.time = track_delta_time[i]
                     list_channel[i].append(msg)
                     track_delta_time[i] = 0
+                    
     #Add end of track message to each channel
     for i in range(num_channel):
         list_channel[i].append(end_of_track_msg)
@@ -103,44 +194,91 @@ def change021_txt(mid, file_name):
         os.makedirs('txt_out', exist_ok=True)
 
     with open(f'txt_out/{file_name}.txt', 'w+') as file:
-        for i, track in enumerate(final_track):
-            file.write('Track {}: {}\n'.format(i, track[0].name))
+        #Add the piece start token
+        file.write('[PIECE_START]\n')
+        for i, track in enumerate(mid.tracks):
+            file.write('[TRACK_START]\n')
+            file.write('Track {}: {}\n'.format(i, track.name))
+            #Add the track start token
             for msg in track:
-                file.write(str(msg) + '\n')
+                if isinstance(msg,MetaMessage):
+                    file.write(str(msg) + '\n')
+                else:
+                    try:
+                        if msg.channel == 9: #If the channel is 9, it is a percussion instrument
+                            if msg.type == 'program_change':
+                                message = f'[INSTRUMENT] {msg.program}.'
+                                file.write(message + '\n')
+                        else:
+                            if msg.type == 'program_change':
+                                message = f'[INSTRUMENT] {msg.program}'
+                                file.write(message + '\n')
+
+                        if msg.type == 'note_on':
+                            message = '0 {} {} {}'.format(msg.note, msg.velocity, msg.time)
+                            file.write(message + '\n')
+                        elif msg.type == 'note_off':
+                            message = '1 {} {} {}'.format(msg.note, msg.velocity, msg.time)
+                            file.write(message + '\n')
+                        elif msg.type == 'control_change':
+                            message = '2 {} {} {}'.format(msg.control, msg.value, msg.time)
+                            file.write(message + '\n')
+                        elif msg.type == 'polytouch':
+                            message = '3 {} {} {}'.format(msg.note, msg.value, msg.time)
+                            file.write(message + '\n')
+                        elif msg.type == 'pitchwheel':
+                            message = '4 {} {}'.format(msg.pitch, msg.time)
+                            file.write(message + '\n')
+                        elif msg.type == 'aftertouch':
+                            message = '5 {} {}'.format(msg.value, msg.time)
+                            file.write(message + '\n')
+                    except:
+                        file.write(str(msg) + '\n')
+                        
+            #Add the track end token
+            file.write('[TRACK_END]\n')
         
 def standardrize(path):
     for files in os.listdir(path):
         file = os.path.join(path, files)
         if files.endswith('.mid'):
             file_name = files[0:-4]
-            mid = MidiFile(file)
-            # print(f'{file_name}')
+            try:
+                mid = MidiFile(file)   
+            except:
+                continue
+            else:
+                pass
+                
             if mid.type == 0:
-                # print('Type 0')
-                change021(mid, file_name)
+                change021_txt(mid, file_name)
             elif mid.type == 1:
-                # print('Type 1')
                 pre_process_type_1(mid, file_name)
             elif mid.type == 2:
-                # print(f'Ignoring {files} as it is type 2')
                 pass
         elif files.endswith('.midi'):
             file_name = files[0:-5]
-            mid = MidiFile(file)
+
+            try:
+                mid = MidiFile(file)   
+            except:
+                continue
+            else:
+                pass
+
             if mid.type == 0:
-                change021(mid, file_name)
+                change021_txt(mid, file_name)
             elif mid.type == 1:
                 pre_process_type_1(mid, file_name)
             elif mid.type == 2:
-                # print(f'Ignoring {files} as it is type 2')
                 pass
-
 
 """
 TODO: 
-Write a reversed translation code from txt files to midi files
+Write a reversed translation code from txt files to midi files 
+Write a code to read the user midi files (which in different format) and convert them to txt files
+Write a code to separate different precussion instruments
 
-Read Jazz Transformer
 Do encoder stuff
 """
 

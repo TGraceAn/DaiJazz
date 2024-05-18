@@ -22,24 +22,35 @@ def augmentation(path):
             change_11(f'{path}/{files}', file_name)
 
 # Use regex to change the note in the note_on and note_off message by +1
+### Data is represented in the following format: what which how when for example: 0 26 45 454
+
 def change_1(path, file_name):
     with open(path, 'r') as file:
         data = file.readlines()
-
     updated_data = []
+
+    track4sub = False
     for line in data:
-        if 'note_on' in line:
-            note = re.search(r'note=(\d+)', line)
-            note = note.group(1)
-            note = int(note) + 1
-            line = re.sub(r'note=\d+', f'note={note}', line)
-            updated_data.append(line)
-        elif 'note_off' in line:
-            note = re.search(r'note=(\d+)', line)
-            note = note.group(1)
-            note = int(note) + 1
-            line = re.sub(r'note=\d+', f'note={note}', line)
-            updated_data.append(line)
+        track_start = re.search(r'\[TRACK_START\]', line)
+        if track_start:
+            track4sub = True
+            
+        precussion = re.search(r'\[INSTRUMENT\] \d+\.', line)
+        if precussion:
+            track4sub = False
+            
+        if track4sub == True:
+            note_represent = re.search(r'(\d+ \d+ \d+ \d+)', line)
+            if note_represent:
+                note_represent = note_represent.group(1)
+                note_represent = note_represent.split(' ')
+
+                if int(note_represent[0]) == 0 or int(note_represent[0]) == 1:
+                    note_represent[1] = str(int(note_represent[1]) + 1)
+                    line = re.sub(r'\d+ \d+ \d+ \d+', f'{note_represent[0]} {note_represent[1]} {note_represent[2]} {note_represent[3]}', line)
+                updated_data.append(line)
+            else:
+                updated_data.append(line)    
         else:
             updated_data.append(line)
 
@@ -51,22 +62,31 @@ def change_2(path, file_name):
         data = file.readlines()
 
     updated_data = []
+    track4sub = False
     for line in data:
-        if 'note_on' in line:
-            note = re.search(r'note=(\d+)', line)
-            note = note.group(1)
-            note = int(note) + 2
-            line = re.sub(r'note=\d+', f'note={note}', line)
-            updated_data.append(line)
-        elif 'note_off' in line:
-            note = re.search(r'note=(\d+)', line)
-            note = note.group(1)
-            note = int(note) + 2
-            line = re.sub(r'note=\d+', f'note={note}', line)
-            updated_data.append(line)
+        track_start = re.search(r'\[TRACK_START\]', line)
+        if track_start:
+            track4sub = True
+            
+        precussion = re.search(r'\[INSTRUMENT\] \d+\.', line)
+        if precussion:
+            track4sub = False
+            
+        if track4sub == True:
+            note_represent = re.search(r'(\d+ \d+ \d+ \d+)', line)
+            if note_represent:
+                note_represent = note_represent.group(1)
+                note_represent = note_represent.split(' ')
+
+                if int(note_represent[0]) == 0 or int(note_represent[0]) == 1:
+                    note_represent[1] = str(int(note_represent[1]) + 2)
+                    line = re.sub(r'\d+ \d+ \d+ \d+', f'{note_represent[0]} {note_represent[1]} {note_represent[2]} {note_represent[3]}', line)
+                updated_data.append(line)
+            else:
+                updated_data.append(line)    
         else:
             updated_data.append(line)
-
+            
     with open(f'txt_aug/{file_name}_+2.txt', 'w+') as file:
         file.writelines(updated_data)
 
@@ -75,19 +95,28 @@ def change_3(path, file_name):
         data = file.readlines()
 
     updated_data = []
+    track4sub = False
     for line in data:
-        if 'note_on' in line:
-            note = re.search(r'note=(\d+)', line)
-            note = note.group(1)
-            note = int(note) + 3
-            line = re.sub(r'note=\d+', f'note={note}', line)
-            updated_data.append(line)
-        elif 'note_off' in line:
-            note = re.search(r'note=(\d+)', line)
-            note = note.group(1)
-            note = int(note) + 3
-            line = re.sub(r'note=\d+', f'note={note}', line)
-            updated_data.append(line)
+        track_start = re.search(r'\[TRACK_START\]', line)
+        if track_start:
+            track4sub = True
+            
+        precussion = re.search(r'\[INSTRUMENT\] \d+\.', line)
+        if precussion:
+            track4sub = False
+            
+        if track4sub == True:
+            note_represent = re.search(r'(\d+ \d+ \d+ \d+)', line)
+            if note_represent:
+                note_represent = note_represent.group(1)
+                note_represent = note_represent.split(' ')
+
+                if int(note_represent[0]) == 0 or int(note_represent[0]) == 1:
+                    note_represent[1] = str(int(note_represent[1]) + 3)
+                    line = re.sub(r'\d+ \d+ \d+ \d+', f'{note_represent[0]} {note_represent[1]} {note_represent[2]} {note_represent[3]}', line)
+                updated_data.append(line)
+            else:
+                updated_data.append(line)    
         else:
             updated_data.append(line)
 
@@ -99,19 +128,28 @@ def change_4(path, file_name):
         data = file.readlines()
 
     updated_data = []
+    track4sub = False
     for line in data:
-        if 'note_on' in line:
-            note = re.search(r'note=(\d+)', line)
-            note = note.group(1)
-            note = int(note) + 4
-            line = re.sub(r'note=\d+', f'note={note}', line)
-            updated_data.append(line)
-        elif 'note_off' in line:
-            note = re.search(r'note=(\d+)', line)
-            note = note.group(1)
-            note = int(note) + 4
-            line = re.sub(r'note=\d+', f'note={note}', line)
-            updated_data.append(line)
+        track_start = re.search(r'\[TRACK_START\]', line)
+        if track_start:
+            track4sub = True
+            
+        precussion = re.search(r'\[INSTRUMENT\] \d+\.', line)
+        if precussion:
+            track4sub = False
+            
+        if track4sub == True:
+            note_represent = re.search(r'(\d+ \d+ \d+ \d+)', line)
+            if note_represent:
+                note_represent = note_represent.group(1)
+                note_represent = note_represent.split(' ')
+
+                if int(note_represent[0]) == 0 or int(note_represent[0]) == 1:
+                    note_represent[1] = str(int(note_represent[1]) + 4)
+                    line = re.sub(r'\d+ \d+ \d+ \d+', f'{note_represent[0]} {note_represent[1]} {note_represent[2]} {note_represent[3]}', line)
+                updated_data.append(line)
+            else:
+                updated_data.append(line)    
         else:
             updated_data.append(line)
 
@@ -123,19 +161,28 @@ def change_5(path, file_name):
         data = file.readlines()
 
     updated_data = []
+    track4sub = False
     for line in data:
-        if 'note_on' in line:
-            note = re.search(r'note=(\d+)', line)
-            note = note.group(1)
-            note = int(note) + 5
-            line = re.sub(r'note=\d+', f'note={note}', line)
-            updated_data.append(line)
-        elif 'note_off' in line:
-            note = re.search(r'note=(\d+)', line)
-            note = note.group(1)
-            note = int(note) + 5
-            line = re.sub(r'note=\d+', f'note={note}', line)
-            updated_data.append(line)
+        track_start = re.search(r'\[TRACK_START\]', line)
+        if track_start:
+            track4sub = True
+            
+        precussion = re.search(r'\[INSTRUMENT\] \d+\.', line)
+        if precussion:
+            track4sub = False
+            
+        if track4sub == True:
+            note_represent = re.search(r'(\d+ \d+ \d+ \d+)', line)
+            if note_represent:
+                note_represent = note_represent.group(1)
+                note_represent = note_represent.split(' ')
+
+                if int(note_represent[0]) == 0 or int(note_represent[0]) == 1:
+                    note_represent[1] = str(int(note_represent[1]) + 5)
+                    line = re.sub(r'\d+ \d+ \d+ \d+', f'{note_represent[0]} {note_represent[1]} {note_represent[2]} {note_represent[3]}', line)
+                updated_data.append(line)
+            else:
+                updated_data.append(line)    
         else:
             updated_data.append(line)
 
@@ -147,47 +194,66 @@ def change_6(path, file_name):
         data = file.readlines()
 
     updated_data = []
+    track4sub = False
     for line in data:
-        if 'note_on' in line:
-            note = re.search(r'note=(\d+)', line)
-            note = note.group(1)
-            note = int(note) + 6
-            line = re.sub(r'note=\d+', f'note={note}', line)
-            updated_data.append(line)
-        elif 'note_off' in line:
-            note = re.search(r'note=(\d+)', line)
-            note = note.group(1)
-            note = int(note) + 6
-            line = re.sub(r'note=\d+', f'note={note}', line)
-            updated_data.append(line)
+        track_start = re.search(r'\[TRACK_START\]', line)
+        if track_start:
+            track4sub = True
+            
+        precussion = re.search(r'\[INSTRUMENT\] \d+\.', line)
+        if precussion:
+            track4sub = False
+            
+        if track4sub == True:
+            note_represent = re.search(r'(\d+ \d+ \d+ \d+)', line)
+            if note_represent:
+                note_represent = note_represent.group(1)
+                note_represent = note_represent.split(' ')
+
+                if int(note_represent[0]) == 0 or int(note_represent[0]) == 1:
+                    note_represent[1] = str(int(note_represent[1]) + 6)
+                    line = re.sub(r'\d+ \d+ \d+ \d+', f'{note_represent[0]} {note_represent[1]} {note_represent[2]} {note_represent[3]}', line)
+                updated_data.append(line)
+            else:
+                updated_data.append(line)    
         else:
             updated_data.append(line)
 
     with open(f'txt_aug/{file_name}_+6.txt', 'w+') as file:
         file.writelines(updated_data)
 
+
 def change_7(path, file_name):
     with open(path, 'r') as file:
         data = file.readlines()
 
     updated_data = []
+    track4sub = False
     for line in data:
-        if 'note_on' in line:
-            note = re.search(r'note=(\d+)', line)
-            note = note.group(1)
-            note = int(note) - 5
-            line = re.sub(r'note=\d+', f'note={note}', line)
-            updated_data.append(line)
-        elif 'note_off' in line:
-            note = re.search(r'note=(\d+)', line)
-            note = note.group(1)
-            note = int(note) - 5
-            line = re.sub(r'note=\d+', f'note={note}', line)
-            updated_data.append(line)
+        track_start = re.search(r'\[TRACK_START\]', line)
+        if track_start:
+            track4sub = True
+            
+        precussion = re.search(r'\[INSTRUMENT\] \d+\.', line)
+        if precussion:
+            track4sub = False
+            
+        if track4sub == True:
+            note_represent = re.search(r'(\d+ \d+ \d+ \d+)', line)
+            if note_represent:
+                note_represent = note_represent.group(1)
+                note_represent = note_represent.split(' ')
+
+                if int(note_represent[0]) == 0 or int(note_represent[0]) == 1:
+                    note_represent[1] = str(int(note_represent[1]) - 5)
+                    line = re.sub(r'\d+ \d+ \d+ \d+', f'{note_represent[0]} {note_represent[1]} {note_represent[2]} {note_represent[3]}', line)
+                updated_data.append(line)
+            else:
+                updated_data.append(line)    
         else:
             updated_data.append(line)
 
-    with open(f'txt_aug/{file_name}_-6.txt', 'w+') as file:
+    with open(f'txt_aug/{file_name}_-5.txt', 'w+') as file:
         file.writelines(updated_data)
 
 def change_8(path, file_name):
@@ -195,19 +261,28 @@ def change_8(path, file_name):
         data = file.readlines()
 
     updated_data = []
+    track4sub = False
     for line in data:
-        if 'note_on' in line:
-            note = re.search(r'note=(\d+)', line)
-            note = note.group(1)
-            note = int(note) - 4
-            line = re.sub(r'note=\d+', f'note={note}', line)
-            updated_data.append(line)
-        elif 'note_off' in line:
-            note = re.search(r'note=(\d+)', line)
-            note = note.group(1)
-            note = int(note) - 4
-            line = re.sub(r'note=\d+', f'note={note}', line)
-            updated_data.append(line)
+        track_start = re.search(r'\[TRACK_START\]', line)
+        if track_start:
+            track4sub = True
+            
+        precussion = re.search(r'\[INSTRUMENT\] \d+\.', line)
+        if precussion:
+            track4sub = False
+            
+        if track4sub == True:
+            note_represent = re.search(r'(\d+ \d+ \d+ \d+)', line)
+            if note_represent:
+                note_represent = note_represent.group(1)
+                note_represent = note_represent.split(' ')
+
+                if int(note_represent[0]) == 0 or int(note_represent[0]) == 1:
+                    note_represent[1] = str(int(note_represent[1]) - 4)
+                    line = re.sub(r'\d+ \d+ \d+ \d+', f'{note_represent[0]} {note_represent[1]} {note_represent[2]} {note_represent[3]}', line)
+                updated_data.append(line)
+            else:
+                updated_data.append(line)    
         else:
             updated_data.append(line)
 
@@ -219,19 +294,28 @@ def change_9(path, file_name):
         data = file.readlines()
 
     updated_data = []
+    track4sub = False
     for line in data:
-        if 'note_on' in line:
-            note = re.search(r'note=(\d+)', line)
-            note = note.group(1)
-            note = int(note) - 3
-            line = re.sub(r'note=\d+', f'note={note}', line)
-            updated_data.append(line)
-        elif 'note_off' in line:
-            note = re.search(r'note=(\d+)', line)
-            note = note.group(1)
-            note = int(note) - 3
-            line = re.sub(r'note=\d+', f'note={note}', line)
-            updated_data.append(line)
+        track_start = re.search(r'\[TRACK_START\]', line)
+        if track_start:
+            track4sub = True
+            
+        precussion = re.search(r'\[INSTRUMENT\] \d+\.', line)
+        if precussion:
+            track4sub = False
+            
+        if track4sub == True:
+            note_represent = re.search(r'(\d+ \d+ \d+ \d+)', line)
+            if note_represent:
+                note_represent = note_represent.group(1)
+                note_represent = note_represent.split(' ')
+
+                if int(note_represent[0]) == 0 or int(note_represent[0]) == 1:
+                    note_represent[1] = str(int(note_represent[1]) - 3)
+                    line = re.sub(r'\d+ \d+ \d+ \d+', f'{note_represent[0]} {note_represent[1]} {note_represent[2]} {note_represent[3]}', line)
+                updated_data.append(line)
+            else:
+                updated_data.append(line)    
         else:
             updated_data.append(line)
 
@@ -243,19 +327,28 @@ def change_10(path, file_name):
         data = file.readlines()
 
     updated_data = []
+    track4sub = False
     for line in data:
-        if 'note_on' in line:
-            note = re.search(r'note=(\d+)', line)
-            note = note.group(1)
-            note = int(note) - 2
-            line = re.sub(r'note=\d+', f'note={note}', line)
-            updated_data.append(line)
-        elif 'note_off' in line:
-            note = re.search(r'note=(\d+)', line)
-            note = note.group(1)
-            note = int(note) - 2
-            line = re.sub(r'note=\d+', f'note={note}', line)
-            updated_data.append(line)
+        track_start = re.search(r'\[TRACK_START\]', line)
+        if track_start:
+            track4sub = True
+            
+        precussion = re.search(r'\[INSTRUMENT\] \d+\.', line)
+        if precussion:
+            track4sub = False
+            
+        if track4sub == True:
+            note_represent = re.search(r'(\d+ \d+ \d+ \d+)', line)
+            if note_represent:
+                note_represent = note_represent.group(1)
+                note_represent = note_represent.split(' ')
+
+                if int(note_represent[0]) == 0 or int(note_represent[0]) == 1:
+                    note_represent[1] = str(int(note_represent[1]) - 2)
+                    line = re.sub(r'\d+ \d+ \d+ \d+', f'{note_represent[0]} {note_represent[1]} {note_represent[2]} {note_represent[3]}', line)
+                updated_data.append(line)
+            else:
+                updated_data.append(line)    
         else:
             updated_data.append(line)
 
@@ -267,19 +360,28 @@ def change_11(path, file_name):
         data = file.readlines()
 
     updated_data = []
+    track4sub = False
     for line in data:
-        if 'note_on' in line:
-            note = re.search(r'note=(\d+)', line)
-            note = note.group(1)
-            note = int(note) - 1
-            line = re.sub(r'note=\d+', f'note={note}', line)
-            updated_data.append(line)
-        elif 'note_off' in line:
-            note = re.search(r'note=(\d+)', line)
-            note = note.group(1)
-            note = int(note) - 1
-            line = re.sub(r'note=\d+', f'note={note}', line)
-            updated_data.append(line)
+        track_start = re.search(r'\[TRACK_START\]', line)
+        if track_start:
+            track4sub = True
+            
+        precussion = re.search(r'\[INSTRUMENT\] \d+\.', line)
+        if precussion:
+            track4sub = False
+            
+        if track4sub == True:
+            note_represent = re.search(r'(\d+ \d+ \d+ \d+)', line)
+            if note_represent:
+                note_represent = note_represent.group(1)
+                note_represent = note_represent.split(' ')
+
+                if int(note_represent[0]) == 0 or int(note_represent[0]) == 1:
+                    note_represent[1] = str(int(note_represent[1]) - 1)
+                    line = re.sub(r'\d+ \d+ \d+ \d+', f'{note_represent[0]} {note_represent[1]} {note_represent[2]} {note_represent[3]}', line)
+                updated_data.append(line)
+            else:
+                updated_data.append(line)    
         else:
             updated_data.append(line)
 
@@ -295,21 +397,31 @@ def change_num(path, file_name, num):
         data = file.readlines()
 
     updated_data = []
+    track4sub = False
     for line in data:
-        if 'note_on' in line:
-            note = re.search(r'note=(\d+)', line)
-            note = note.group(1)
-            note = int(note) + num
-            line = re.sub(r'note=\d+', f'note={note}', line)
-            updated_data.append(line)
-        elif 'note_off' in line:
-            note = re.search(r'note=(\d+)', line)
-            note = note.group(1)
-            note = int(note) + num
-            line = re.sub(r'note=\d+', f'note={note}', line)
-            updated_data.append(line)
+        track_start = re.search(r'\[TRACK_START\]', line)
+        if track_start:
+            track4sub = True
+            
+        precussion = re.search(r'\[INSTRUMENT\] \d+\.', line)
+        if precussion:
+            track4sub = False
+            
+        if track4sub == True:
+            note_represent = re.search(r'(\d+ \d+ \d+ \d+)', line)
+            if note_represent:
+                note_represent = note_represent.group(1)
+                note_represent = note_represent.split(' ')
+
+                if int(note_represent[0]) == 0 or int(note_represent[0]) == 1:
+                    note_represent[1] = str(int(note_represent[1]) + num)
+                    line = re.sub(r'\d+ \d+ \d+ \d+', f'{note_represent[0]} {note_represent[1]} {note_represent[2]} {note_represent[3]}', line)
+                updated_data.append(line)
+            else:
+                updated_data.append(line)    
         else:
             updated_data.append(line)
 
     with open(f'txt_aug/{file_name}_{num}.txt', 'w+') as file:
         file.writelines(updated_data)
+    
