@@ -20,6 +20,7 @@ def augmentation(path):
             change_9(f'{path}/{files}', file_name)
             change_10(f'{path}/{files}', file_name)
             change_11(f'{path}/{files}', file_name)
+            change_num(f'{path}/{files}', file_name, 0)
 
 # Use regex to change the note in the note_on and note_off message by +1
 ### Data is represented in the following format: what which how when for example: 0 26 45 454

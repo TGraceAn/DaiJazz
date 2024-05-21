@@ -1,4 +1,4 @@
-from mido import MidiFile, midifiles, MetaMessage
+from mido import MidiFile, midifiles, MetaMessage, MidiTrack
 import os
 
 """
@@ -45,6 +45,8 @@ TOKENS = ['[MESSAGE]','[WHAT]','[WHICH]', '[HOW]',
           '[BAR_END]','[TIME_SHIFT]', '[INSTRUMENT]',
           '[FILL_PLACEHOLDER]','[FILL_START]', '[FILL_END]']
 
+ADDED_TOKENS = ['[PIECE_START]','[TRACK_START]', '[TRACK_END]',
+                '[INSTRUMENT]','[FILL_PLACEHOLDER]','[FILL_START]', '[FILL_END]']
 
 
 """
@@ -86,11 +88,13 @@ def pre_process_type_1(mid, file_name):
                             if msg.type == 'program_change':
                                 message = f'[INSTRUMENT] {msg.program}'
                                 file.write(message + '\n')
-
                         if msg.type == 'note_on':
                             message = '0 {} {} {}'.format(msg.note, msg.velocity, msg.time)
+                            if msg.velocity == 0:
+                                message = '1 {} {} {}'.format(msg.note, msg.velocity, msg.time)
                             file.write(message + '\n')
                         elif msg.type == 'note_off':
+                            msg.velocity = 0
                             message = '1 {} {} {}'.format(msg.note, msg.velocity, msg.time)
                             file.write(message + '\n')
                         elif msg.type == 'control_change':
@@ -107,7 +111,6 @@ def pre_process_type_1(mid, file_name):
                             file.write(message + '\n')
                     except:
                         file.write(str(msg) + '\n')
-                        
             #Add the track end token
             file.write('[TRACK_END]\n')
 
@@ -129,6 +132,7 @@ def change021_txt(mid, file_name):
     final_track = []
     sysex_message = None
     end_of_track_msg = None
+    resolution = mid.ticks_per_beat
 
     for msg in mid.tracks[0]:
         total_time += msg.time
@@ -188,6 +192,22 @@ def change021_txt(mid, file_name):
             final_track[i].insert(0, midifiles.meta.MetaMessage('track_name', name = 'End of Track'))
         else:
             final_track[i].insert(0, midifiles.meta.MetaMessage('track_name', name = 'Channel {}'.format(i)))
+
+    #Create type 1 midi file
+    mid = MidiFile(ticks_per_beat = resolution)
+    for track in final_track:
+        track = MidiTrack(track)
+        mid.tracks.append(track)
+        
+    #Save the midi file
+    if not os.path.exists('midi_files'):
+        os.makedirs('midi_files', exist_ok=True)    
+    try:
+        mid.save(f'midi_files/{file_name}_type1.mid')
+    except:
+        print(f'Could not save {file_name}_type1.mid')
+    
+        
     #Save into a txt file which is easy to read
     #Make a new directory to save the txt file
     if not os.path.exists('txt_out'):
@@ -216,8 +236,11 @@ def change021_txt(mid, file_name):
 
                         if msg.type == 'note_on':
                             message = '0 {} {} {}'.format(msg.note, msg.velocity, msg.time)
+                            if msg.velocity == 0:
+                                message = '1 {} {} {}'.format(msg.note, msg.velocity, msg.time)
                             file.write(message + '\n')
                         elif msg.type == 'note_off':
+                            msg.velocity = 0
                             message = '1 {} {} {}'.format(msg.note, msg.velocity, msg.time)
                             file.write(message + '\n')
                         elif msg.type == 'control_change':
@@ -273,14 +296,7 @@ def standardrize(path):
             elif mid.type == 2:
                 pass
 
-"""
-TODO: 
-Write a reversed translation code from txt files to midi files 
-Write a code to read the user midi files (which in different format) and convert them to txt files
-Write a code to separate different precussion instruments
 
-Do encoder stuff
-"""
 
 if __name__ == '__main__':
     path = 'midi_files'
