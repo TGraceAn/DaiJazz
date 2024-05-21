@@ -88,6 +88,7 @@ def pre_process_type_1(mid, file_name):
                             if msg.type == 'program_change':
                                 message = f'[INSTRUMENT] {msg.program}'
                                 file.write(message + '\n')
+
                         if msg.type == 'note_on':
                             message = '0 {} {} {}'.format(msg.note, msg.velocity, msg.time)
                             if msg.velocity == 0:
@@ -111,6 +112,7 @@ def pre_process_type_1(mid, file_name):
                             file.write(message + '\n')
                     except:
                         file.write(str(msg) + '\n')
+                        
             #Add the track end token
             file.write('[TRACK_END]\n')
 
@@ -141,8 +143,11 @@ def change021_txt(mid, file_name):
         elif isinstance(msg, midifiles.meta.MetaMessage) and msg.type == 'end_of_track':
             end_of_track_msg = msg
         elif isinstance(msg, midifiles.meta.MetaMessage):
-            header_track.append(msg)
-            time_stemp += msg.time
+            if msg.type == 'copyright':
+                time_stemp += msg.time
+            else:
+                header_track.append(msg)
+                time_stemp += msg.time
         elif msg.channel not in channel_list:
             time_stemp += msg.time
             channel_list.append(msg.channel)
@@ -177,7 +182,10 @@ def change021_txt(mid, file_name):
     #Add end of track message to each channel
     for i in range(num_channel):
         list_channel[i].append(end_of_track_msg)
-    end_track.append(sysex_message)
+        
+#     if sysex_message:
+#         end_track.append(sysex_message)
+        
     end_track.append(end_of_track_msg)
     header_track.append(midifiles.meta.MetaMessage('end_of_track', time = total_time + 1000))
     final_track = [header_track]
@@ -295,7 +303,6 @@ def standardrize(path):
                 pre_process_type_1(mid, file_name)
             elif mid.type == 2:
                 pass
-
 
 
 if __name__ == '__main__':
