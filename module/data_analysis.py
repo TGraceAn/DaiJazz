@@ -56,10 +56,6 @@ def find_lowestnote(path):
                             if int(note_represent[0]) == 0:
                                 if int(note_represent[1]) < min_note:
                                     if int(note_represent[1]) == 0:
-                                        print(file_name)
-                                        print(note_represent)
-                                        pass
-                                    else:
                                         min_note = int(note_represent[1])
                                 
     return min_note

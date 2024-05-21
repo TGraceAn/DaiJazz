@@ -48,6 +48,12 @@ def change_1(path, file_name):
 
                 if int(note_represent[0]) == 0 or int(note_represent[0]) == 1:
                     note_represent[1] = str(int(note_represent[1]) + 1)
+
+                    if int(note_represent[1]) > 127:
+                        note_represent[1] = str(127)
+                    elif int(note_represent[1]) < 0:
+                        note_represent[1] = str(0)
+
                     line = re.sub(r'\d+ \d+ \d+ \d+', f'{note_represent[0]} {note_represent[1]} {note_represent[2]} {note_represent[3]}', line)
                 updated_data.append(line)
             else:
@@ -81,6 +87,12 @@ def change_2(path, file_name):
 
                 if int(note_represent[0]) == 0 or int(note_represent[0]) == 1:
                     note_represent[1] = str(int(note_represent[1]) + 2)
+
+                    if int(note_represent[1]) > 127:
+                        note_represent[1] = str(127)
+                    elif int(note_represent[1]) < 0:
+                        note_represent[1] = str(0)
+
                     line = re.sub(r'\d+ \d+ \d+ \d+', f'{note_represent[0]} {note_represent[1]} {note_represent[2]} {note_represent[3]}', line)
                 updated_data.append(line)
             else:
@@ -114,6 +126,12 @@ def change_3(path, file_name):
 
                 if int(note_represent[0]) == 0 or int(note_represent[0]) == 1:
                     note_represent[1] = str(int(note_represent[1]) + 3)
+
+                    if int(note_represent[1]) > 127:
+                        note_represent[1] = str(127)
+                    elif int(note_represent[1]) < 0:
+                        note_represent[1] = str(0)
+
                     line = re.sub(r'\d+ \d+ \d+ \d+', f'{note_represent[0]} {note_represent[1]} {note_represent[2]} {note_represent[3]}', line)
                 updated_data.append(line)
             else:
@@ -147,6 +165,12 @@ def change_4(path, file_name):
 
                 if int(note_represent[0]) == 0 or int(note_represent[0]) == 1:
                     note_represent[1] = str(int(note_represent[1]) + 4)
+
+                    if int(note_represent[1]) > 127:
+                        note_represent[1] = str(127)
+                    elif int(note_represent[1]) < 0:
+                        note_represent[1] = str(0)
+
                     line = re.sub(r'\d+ \d+ \d+ \d+', f'{note_represent[0]} {note_represent[1]} {note_represent[2]} {note_represent[3]}', line)
                 updated_data.append(line)
             else:
@@ -180,6 +204,12 @@ def change_5(path, file_name):
 
                 if int(note_represent[0]) == 0 or int(note_represent[0]) == 1:
                     note_represent[1] = str(int(note_represent[1]) + 5)
+
+                    if int(note_represent[1]) > 127:
+                        note_represent[1] = str(127)
+                    elif int(note_represent[1]) < 0:
+                        note_represent[1] = str(0)
+                    
                     line = re.sub(r'\d+ \d+ \d+ \d+', f'{note_represent[0]} {note_represent[1]} {note_represent[2]} {note_represent[3]}', line)
                 updated_data.append(line)
             else:
@@ -213,6 +243,12 @@ def change_6(path, file_name):
 
                 if int(note_represent[0]) == 0 or int(note_represent[0]) == 1:
                     note_represent[1] = str(int(note_represent[1]) + 6)
+
+                    if int(note_represent[1]) > 127:
+                        note_represent[1] = str(127)
+                    elif int(note_represent[1]) < 0:
+                        note_represent[1] = str(0)
+
                     line = re.sub(r'\d+ \d+ \d+ \d+', f'{note_represent[0]} {note_represent[1]} {note_represent[2]} {note_represent[3]}', line)
                 updated_data.append(line)
             else:
@@ -247,6 +283,12 @@ def change_7(path, file_name):
 
                 if int(note_represent[0]) == 0 or int(note_represent[0]) == 1:
                     note_represent[1] = str(int(note_represent[1]) - 5)
+
+                    if int(note_represent[1]) > 127:
+                        note_represent[1] = str(127)
+                    elif int(note_represent[1]) < 0:
+                        note_represent[1] = str(0)
+
                     line = re.sub(r'\d+ \d+ \d+ \d+', f'{note_represent[0]} {note_represent[1]} {note_represent[2]} {note_represent[3]}', line)
                 updated_data.append(line)
             else:
@@ -280,6 +322,12 @@ def change_8(path, file_name):
 
                 if int(note_represent[0]) == 0 or int(note_represent[0]) == 1:
                     note_represent[1] = str(int(note_represent[1]) - 4)
+
+                    if int(note_represent[1]) > 127:
+                        note_represent[1] = str(127)
+                    elif int(note_represent[1]) < 0:
+                        note_represent[1] = str(0)
+
                     line = re.sub(r'\d+ \d+ \d+ \d+', f'{note_represent[0]} {note_represent[1]} {note_represent[2]} {note_represent[3]}', line)
                 updated_data.append(line)
             else:
@@ -313,6 +361,12 @@ def change_9(path, file_name):
 
                 if int(note_represent[0]) == 0 or int(note_represent[0]) == 1:
                     note_represent[1] = str(int(note_represent[1]) - 3)
+
+                    if int(note_represent[1]) > 127:
+                        note_represent[1] = str(127)
+                    elif int(note_represent[1]) < 0:
+                        note_represent[1] = str(0)
+
                     line = re.sub(r'\d+ \d+ \d+ \d+', f'{note_represent[0]} {note_represent[1]} {note_represent[2]} {note_represent[3]}', line)
                 updated_data.append(line)
             else:
@@ -346,6 +400,10 @@ def change_10(path, file_name):
 
                 if int(note_represent[0]) == 0 or int(note_represent[0]) == 1:
                     note_represent[1] = str(int(note_represent[1]) - 2)
+                    if int(note_represent[1]) > 127:
+                        note_represent[1] = str(127)
+                    elif int(note_represent[1]) < 0:
+                        note_represent[1] = str(0)
                     line = re.sub(r'\d+ \d+ \d+ \d+', f'{note_represent[0]} {note_represent[1]} {note_represent[2]} {note_represent[3]}', line)
                 updated_data.append(line)
             else:
@@ -379,6 +437,10 @@ def change_11(path, file_name):
 
                 if int(note_represent[0]) == 0 or int(note_represent[0]) == 1:
                     note_represent[1] = str(int(note_represent[1]) - 1)
+                    if int(note_represent[1]) > 127:
+                        note_represent[1] = str(127)
+                    elif int(note_represent[1]) < 0:
+                        note_represent[1] = str(0)
                     line = re.sub(r'\d+ \d+ \d+ \d+', f'{note_represent[0]} {note_represent[1]} {note_represent[2]} {note_represent[3]}', line)
                 updated_data.append(line)
             else:
@@ -416,6 +478,10 @@ def change_num(path, file_name, num):
 
                 if int(note_represent[0]) == 0 or int(note_represent[0]) == 1:
                     note_represent[1] = str(int(note_represent[1]) + num)
+                    if int(note_represent[1]) > 127:
+                        note_represent[1] = str(127)
+                    elif int(note_represent[1]) < 0:
+                        note_represent[1] = str(0)
                     line = re.sub(r'\d+ \d+ \d+ \d+', f'{note_represent[0]} {note_represent[1]} {note_represent[2]} {note_represent[3]}', line)
                 updated_data.append(line)
             else:
