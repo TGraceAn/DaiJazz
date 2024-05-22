@@ -61,8 +61,9 @@ message_dict = {
     'pitchwheel': 4,
     'aftertouch': 5,
 }
-
 def pre_process_type_1(mid, file_name):
+    playing = False
+    
     #Save into a text file which is easy to read
     #Make a new directory to save the text file
     if not os.path.exists('txt_out'):
@@ -72,47 +73,70 @@ def pre_process_type_1(mid, file_name):
         #Add the piece start token
         file.write('[PIECE_START]\n')
         for i, track in enumerate(mid.tracks):
-            file.write('[TRACK_START]\n')
-            file.write('Track {}: {}\n'.format(i, track.name))
-            #Add the track start token
+            playing = False
+            
             for msg in track:
-                if isinstance(msg,MetaMessage):
-                    file.write(str(msg) + '\n')
-                else:
-                    try:
-                        if msg.channel == 9: #If the channel is 9, it is a percussion instrument
-                            if msg.type == 'program_change':
-                                message = f'[INSTRUMENT] {msg.program}.'
-                                file.write(message + '\n')
-                        else:
-                            if msg.type == 'program_change':
-                                message = f'[INSTRUMENT] {msg.program}'
-                                file.write(message + '\n')
+                if msg.type == "note_on":
+                    playing = True
+                    break
+                    
+            if playing == True:
+                file.write('[TRACK_START]\n')
+                # file.write('Track {}: {}\n'.format(i, track.name))
+                #Add the track start token
+                
+                non_added_time = 0
+                adding = False
 
-                        if msg.type == 'note_on':
-                            message = '0 {} {} {}'.format(msg.note, msg.velocity, msg.time)
-                            if msg.velocity == 0:
+                for msg in track:
+
+                    if adding:
+                        msg.time += non_added_time
+                        non_added_time = 0
+                        adding = False
+
+                    if isinstance(msg,MetaMessage):
+                        non_added_time += msg.time
+                        adding = True
+                        # file.write(str(msg) + '\n')
+
+                    else:
+                        try:
+                            if msg.channel == 9: #If the channel is 9, it is a percussion instrument
+                                if msg.type == 'program_change':
+                                    message = f'[INSTRUMENT] {msg.program}.'
+                                    file.write(message + '\n')
+                            else:
+                                if msg.type == 'program_change':
+                                    message = f'[INSTRUMENT] {msg.program}'
+                                    file.write(message + '\n')
+
+                            if msg.type == 'note_on':
+                                message = '0 {} {} {}'.format(msg.note, msg.velocity, msg.time)
+                                if msg.velocity == 0:
+                                    message = '1 {} {} {}'.format(msg.note, msg.velocity, msg.time)
+                                file.write(message + '\n')
+                            elif msg.type == 'note_off':
+                                msg.velocity = 0
                                 message = '1 {} {} {}'.format(msg.note, msg.velocity, msg.time)
-                            file.write(message + '\n')
-                        elif msg.type == 'note_off':
-                            msg.velocity = 0
-                            message = '1 {} {} {}'.format(msg.note, msg.velocity, msg.time)
-                            file.write(message + '\n')
-                        elif msg.type == 'control_change':
-                            message = '2 {} {} {}'.format(msg.control, msg.value, msg.time)
-                            file.write(message + '\n')
-                        elif msg.type == 'polytouch':
-                            message = '3 {} {} {}'.format(msg.note, msg.value, msg.time)
-                            file.write(message + '\n')
-                        elif msg.type == 'pitchwheel':
-                            message = '4 {} {}'.format(msg.pitch, msg.time)
-                            file.write(message + '\n')
-                        elif msg.type == 'aftertouch':
-                            message = '5 {} {}'.format(msg.value, msg.time)
-                            file.write(message + '\n')
-                    except:
-                        file.write(str(msg) + '\n')
-                        
+                                file.write(message + '\n')
+                            elif msg.type == 'control_change':
+                                message = '2 {} {} {}'.format(msg.control, msg.value, msg.time)
+                                file.write(message + '\n')
+                            elif msg.type == 'polytouch':
+                                message = '3 {} {} {}'.format(msg.note, msg.value, msg.time)
+                                file.write(message + '\n')
+                            elif msg.type == 'pitchwheel':
+                                message = '4 {} {}'.format(msg.pitch, msg.time)
+                                file.write(message + '\n')
+                            elif msg.type == 'aftertouch':
+                                message = '5 {} {}'.format(msg.value, msg.time)
+                                file.write(message + '\n')
+                        except:
+                            non_added_time += msg.time
+                            adding = True
+                            # file.write(str(msg) + '\n')
+
             #Add the track end token
             file.write('[TRACK_END]\n')
 
@@ -203,10 +227,20 @@ def change021_txt(mid, file_name):
 
     #Create type 1 midi file
     mid = MidiFile(ticks_per_beat = resolution)
+    mid.tracks.append(final_track[0])
+
     for track in final_track:
+        playing = False
         track = MidiTrack(track)
-        mid.tracks.append(track)
-        
+        for msg in track:
+            if msg.type == 'note_on':
+                playing = True
+                break
+        if playing == True:
+            mid.tracks.append(track)
+    
+    mid.tracks.append(final_track[-1])
+
     #Save the midi file
     if not os.path.exists('midi_files'):
         os.makedirs('midi_files', exist_ok=True)    
@@ -225,47 +259,69 @@ def change021_txt(mid, file_name):
         #Add the piece start token
         file.write('[PIECE_START]\n')
         for i, track in enumerate(mid.tracks):
-            file.write('[TRACK_START]\n')
-            file.write('Track {}: {}\n'.format(i, track.name))
-            #Add the track start token
+            playing = False
             for msg in track:
-                if isinstance(msg,MetaMessage):
-                    file.write(str(msg) + '\n')
-                else:
-                    try:
-                        if msg.channel == 9: #If the channel is 9, it is a percussion instrument
-                            if msg.type == 'program_change':
-                                message = f'[INSTRUMENT] {msg.program}.'
-                                file.write(message + '\n')
-                        else:
-                            if msg.type == 'program_change':
-                                message = f'[INSTRUMENT] {msg.program}'
-                                file.write(message + '\n')
+                if msg.type == "note_on":
+                    playing = True
+                    break
+            
+            if playing == True:
+                file.write('[TRACK_START]\n')
+                # file.write('Track {}: {}\n'.format(i, track.name))
+                #Add the track start token
+                
+                non_added_time = 0
+                adding = False
 
-                        if msg.type == 'note_on':
-                            message = '0 {} {} {}'.format(msg.note, msg.velocity, msg.time)
-                            if msg.velocity == 0:
+                for msg in track:
+
+                    if adding:
+                        msg.time += non_added_time
+                        non_added_time = 0
+                        adding = False
+
+                    if isinstance(msg,MetaMessage):
+                        non_added_time += msg.time
+                        adding = True
+                        # file.write(str(msg) + '\n')
+
+                    else:
+                        try:
+                            if msg.channel == 9: #If the channel is 9, it is a percussion instrument
+                                if msg.type == 'program_change':
+                                    message = f'[INSTRUMENT] {msg.program}.'
+                                    file.write(message + '\n')
+                            else:
+                                if msg.type == 'program_change':
+                                    message = f'[INSTRUMENT] {msg.program}'
+                                    file.write(message + '\n')
+
+                            if msg.type == 'note_on':
+                                message = '0 {} {} {}'.format(msg.note, msg.velocity, msg.time)
+                                if msg.velocity == 0:
+                                    message = '1 {} {} {}'.format(msg.note, msg.velocity, msg.time)
+                                file.write(message + '\n')
+                            elif msg.type == 'note_off':
+                                msg.velocity = 0
                                 message = '1 {} {} {}'.format(msg.note, msg.velocity, msg.time)
-                            file.write(message + '\n')
-                        elif msg.type == 'note_off':
-                            msg.velocity = 0
-                            message = '1 {} {} {}'.format(msg.note, msg.velocity, msg.time)
-                            file.write(message + '\n')
-                        elif msg.type == 'control_change':
-                            message = '2 {} {} {}'.format(msg.control, msg.value, msg.time)
-                            file.write(message + '\n')
-                        elif msg.type == 'polytouch':
-                            message = '3 {} {} {}'.format(msg.note, msg.value, msg.time)
-                            file.write(message + '\n')
-                        elif msg.type == 'pitchwheel':
-                            message = '4 {} {}'.format(msg.pitch, msg.time)
-                            file.write(message + '\n')
-                        elif msg.type == 'aftertouch':
-                            message = '5 {} {}'.format(msg.value, msg.time)
-                            file.write(message + '\n')
-                    except:
-                        file.write(str(msg) + '\n')
-                        
+                                file.write(message + '\n')
+                            elif msg.type == 'control_change':
+                                message = '2 {} {} {}'.format(msg.control, msg.value, msg.time)
+                                file.write(message + '\n')
+                            elif msg.type == 'polytouch':
+                                message = '3 {} {} {}'.format(msg.note, msg.value, msg.time)
+                                file.write(message + '\n')
+                            elif msg.type == 'pitchwheel':
+                                message = '4 {} {}'.format(msg.pitch, msg.time)
+                                file.write(message + '\n')
+                            elif msg.type == 'aftertouch':
+                                message = '5 {} {}'.format(msg.value, msg.time)
+                                file.write(message + '\n')
+                        except:
+                            non_added_time += msg.time
+                            adding = True
+                            # file.write(str(msg) + '\n')
+
             #Add the track end token
             file.write('[TRACK_END]\n')
         
@@ -303,8 +359,3 @@ def standardrize(path):
                 pre_process_type_1(mid, file_name)
             elif mid.type == 2:
                 pass
-
-
-if __name__ == '__main__':
-    path = 'midi_files'
-    standardrize(path)
