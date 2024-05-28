@@ -105,40 +105,44 @@ def pre_process_type_1(mid, file_name):
                             if msg.channel == 9: #If the channel is 9, it is a percussion instrument
                                 if msg.type == 'program_change':
                                     message = f'[INSTRUMENT] {msg.program}.'
+                                    non_added_time += msg.time
+                                    adding = True
                                     file.write(message + '\n')
                             else:
                                 if msg.type == 'program_change':
                                     message = f'[INSTRUMENT] {msg.program}'
+                                    non_added_time += msg.time
+                                    adding = True
                                     file.write(message + '\n')
 
                             if msg.type == 'note_on':
-                                message = '0 {} {} {}'.format(msg.note, msg.velocity, msg.time)
+                                message = '[WHAT]:0 [WHICH]:{} [HOW]:{} [WHEN]:{}'.format(msg.note, msg.velocity, msg.time)
                                 if msg.velocity == 0:
-                                    message = '1 {} {} {}'.format(msg.note, msg.velocity, msg.time)
+                                    message = '[WHAT]:1 [WHICH]:{} [HOW]:{} [WHEN]:{}'.format(msg.note, msg.velocity, msg.time)
                                 file.write(message + '\n')
                             elif msg.type == 'note_off':
                                 msg.velocity = 0
-                                message = '1 {} {} {}'.format(msg.note, msg.velocity, msg.time)
+                                message = '[WHAT]:1 [WHICH]:{} [HOW]:{} [WHEN]:{}'.format(msg.note, msg.velocity, msg.time)
                                 file.write(message + '\n')
                             elif msg.type == 'control_change':
-                                message = '2 {} {} {}'.format(msg.control, msg.value, msg.time)
+                                message = '[WHAT]:2 [WHICH]:{} [HOW]:{} [WHEN]:{}'.format(msg.control, msg.value, msg.time)
                                 file.write(message + '\n')
                             elif msg.type == 'polytouch':
-                                message = '3 {} {} {}'.format(msg.note, msg.value, msg.time)
+                                message = '[WHAT]:3 [WHICH]:{} [HOW]:{} [WHEN]:{}'.format(msg.note, msg.value, msg.time)
                                 file.write(message + '\n')
                             elif msg.type == 'pitchwheel':
-                                message = '4 {} {}'.format(msg.pitch, msg.time)
+                                message = '[WHAT]:4 [HOW]:{} [WHEN]:{}'.format(msg.pitch, msg.time)
                                 file.write(message + '\n')
                             elif msg.type == 'aftertouch':
-                                message = '5 {} {}'.format(msg.value, msg.time)
+                                message = '[WHAT]:5 [HOW]:{} [WHEN]:{}'.format(msg.value, msg.time)
                                 file.write(message + '\n')
                         except:
                             non_added_time += msg.time
                             adding = True
                             # file.write(str(msg) + '\n')
 
-            #Add the track end token
-            file.write('[TRACK_END]\n')
+                #Add the track end token
+                file.write('[TRACK_END]\n')
 
 
 """
@@ -158,6 +162,7 @@ def change021_txt(mid, file_name):
     final_track = []
     sysex_message = None
     end_of_track_msg = None
+    
     resolution = mid.ticks_per_beat
 
     for msg in mid.tracks[0]:
@@ -290,40 +295,44 @@ def change021_txt(mid, file_name):
                             if msg.channel == 9: #If the channel is 9, it is a percussion instrument
                                 if msg.type == 'program_change':
                                     message = f'[INSTRUMENT] {msg.program}.'
+                                    non_added_time += msg.time
+                                    adding = True
                                     file.write(message + '\n')
                             else:
                                 if msg.type == 'program_change':
                                     message = f'[INSTRUMENT] {msg.program}'
+                                    non_added_time += msg.time
+                                    adding = True
                                     file.write(message + '\n')
 
                             if msg.type == 'note_on':
-                                message = '0 {} {} {}'.format(msg.note, msg.velocity, msg.time)
+                                message = '[WHAT]:0 [WHICH]:{} [HOW]:{} [WHEN]:{}'.format(msg.note, msg.velocity, msg.time)
                                 if msg.velocity == 0:
-                                    message = '1 {} {} {}'.format(msg.note, msg.velocity, msg.time)
+                                    message = '[WHAT]:1 [WHICH]:{} [HOW]:{} [WHEN]:{}'.format(msg.note, msg.velocity, msg.time)
                                 file.write(message + '\n')
                             elif msg.type == 'note_off':
                                 msg.velocity = 0
-                                message = '1 {} {} {}'.format(msg.note, msg.velocity, msg.time)
+                                message = '[WHAT]:1 [WHICH]:{} [HOW]:{} [WHEN]:{}'.format(msg.note, msg.velocity, msg.time)
                                 file.write(message + '\n')
                             elif msg.type == 'control_change':
-                                message = '2 {} {} {}'.format(msg.control, msg.value, msg.time)
+                                message = '[WHAT]:2 [WHICH]:{} [HOW]:{} [WHEN]:{}'.format(msg.control, msg.value, msg.time)
                                 file.write(message + '\n')
                             elif msg.type == 'polytouch':
-                                message = '3 {} {} {}'.format(msg.note, msg.value, msg.time)
+                                message = '[WHAT]:3 [WHICH]:{} [HOW]:{} [WHEN]:{}'.format(msg.note, msg.value, msg.time)
                                 file.write(message + '\n')
                             elif msg.type == 'pitchwheel':
-                                message = '4 {} {}'.format(msg.pitch, msg.time)
+                                message = '[WHAT]:4 [HOW]:{} [WHEN]:{}'.format(msg.pitch, msg.time)
                                 file.write(message + '\n')
                             elif msg.type == 'aftertouch':
-                                message = '5 {} {}'.format(msg.value, msg.time)
+                                message = '[WHAT]:5 [HOW]:{} [WHEN]:{}'.format(msg.value, msg.time)
                                 file.write(message + '\n')
                         except:
                             non_added_time += msg.time
                             adding = True
                             # file.write(str(msg) + '\n')
 
-            #Add the track end token
-            file.write('[TRACK_END]\n')
+                #Add the track end token
+                file.write('[TRACK_END]\n')
         
 def standardrize(path):
     for files in os.listdir(path):
