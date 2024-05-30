@@ -30,7 +30,6 @@ class Tokenizer:
         tokens.extend([self.encoder[char] for char in text[start:]])
         return tokens
 
-
     def decode(self, tokens):
         text = ''.join([self.decoder[token] for token in tokens])
         return text
@@ -41,7 +40,7 @@ class Tokenizer:
 def get_tokenizer():
     with open('encoder.json', 'r') as f:
         encoder = json.load(f)
-    
+        
     return Tokenizer(
         encoder=encoder
     )
