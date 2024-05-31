@@ -3,6 +3,7 @@ import torch.nn as nn
 from torch.nn import functional as F
 import os
 import numpy as np
+from midi_tokenizer import get_tokenizer
 
 # relative context
 # hyperparameters
@@ -34,29 +35,53 @@ for file in os.listdir('txt_aug'):
             text = f.read()
             texts.append(text)
 
-# text = list(np.concatenate(texts).flat)
-# len(text)
+# Split into tracks
+tracks = []
+current_track = []
+for token in data.tolist():
+    if token == 20:  # Token "20" represents [TRACK_START]
+        if current_track:
+            tracks.append(torch.tensor(current_track[1:])) #remove the \n token
+            current_track = []
+    else:
+        current_track.append(token)
+
+# Append the last track
+if current_track:
+    current_track = current_track[1:]
+    tracks.append(torch.tensor(current_track))
+
 
 tokenizer = get_tokenizer()
 vocab_size = len(tokenizer.encoder)
 
 data = torch.tensor(tokenizer.encode(texts[0]), dtype=torch.long)
 
-
 n = int(0.9*len(data)) # first 90% will be train, rest val
 
 train_data = data[:n]
 val_data = data[n:]
 
-# data loading
-def get_batch(split):
-    # generate a small batch of data of inputs x and targets y
-    data = train_data if split == 'train' else val_data
 
-    ix = torch.randint(len(data) - block_size, (batch_size,))
-    x = torch.stack([data[i:i+block_size] for i in ix])
-    y = torch.stack([data[i+1:i+block_size+1] for i in ix])
-    x, y = x.to(device), y.to(device)
+# Data loading
+def get_batch(split):
+    data = tracks if split == 'train' else val_data
+    
+    # Randomly sample a batch of tracks
+    track_indices = torch.randint(0, len(data), (batch_size,))
+    
+    x_batch = []
+    y_batch = []
+    for idx in track_indices:
+        track = data[idx]
+        ix = torch.randint(len(track) - block_size, (1,))
+        x = track[ix:ix+block_size]
+        y = track[ix+1:ix+block_size+1]
+        x_batch.append(x)
+        y_batch.append(y)
+    
+    x = torch.stack(x_batch).to(device)
+    y = torch.stack(y_batch).to(device)
     return x, y
 
 @torch.no_grad()
@@ -64,12 +89,14 @@ def estimate_loss():
     out = {}
     model.eval()
     for split in ['train', 'val']:
-        losses = torch.zeros(eval_iters)
-        for k in range(eval_iters):
-            X, Y = get_batch(split)
-            logits, loss = model(X, Y)
-            losses[k] = loss.item()
-        out[split] = losses.mean()
+        losses = []
+        data = tracks if split == 'train' else val_data
+        for track in data:
+            x = torch.tensor(track[:-1], dtype=torch.long, device=device).unsqueeze(0)
+            y = torch.tensor(track[1:], dtype=torch.long, device=device).unsqueeze(0)
+            logits, loss = model(x, y)
+            losses.append(loss.item())
+        out[split] = np.mean(losses)
     model.train()
     return out
 
@@ -212,12 +239,13 @@ class DaiJazz(nn.Module):
         return idx
 
 model = DaiJazz()
-m = model.to(device)
+model = model.to(device)
 # print the number of parameters in the model
-print(sum(p.numel() for p in m.parameters())/1e6, 'M parameters')
+print(sum(p.numel() for p in model.parameters())/1e6, 'M parameters')
 
 # create a PyTorch optimizer
 optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
+
 for iter in range(max_iters):
 
     # every once in a while evaluate the loss on train and val sets
@@ -234,8 +262,21 @@ for iter in range(max_iters):
     loss.backward()
     optimizer.step()
 
+
+
 # generate from the model
 context = torch.zeros((1, 1), dtype=torch.long, device=device)
 
-print(tokenizer.decode(m.generate(context, max_new_tokens=500)[0].tolist()))
+def generate_track(context, max_new_tokens):
+    idx = torch.tensor(context, dtype=torch.long, device=device).unsqueeze(0)
+    generated_track = context.copy()
+    for _ in range(max_new_tokens):
+        logits, _ = model(idx)
+        next_token = torch.multinomial(F.softmax(logits[:, -1, :], dim=-1), num_samples=1)
+        generated_track.append(next_token.item())
+        idx = torch.cat((idx, next_token), dim=1)
+    return generated_track
+
+
+print(tokenizer.decode(generate_track(context, max_new_tokens=500)[0].tolist()))
 #open('more.txt', 'w').write(decode(m.generate(context, max_new_tokens=10000)[0].tolist()))
