@@ -27,45 +27,45 @@ dropout = 0.2
 
 torch.manual_seed(1162003)
 
-# Load all the text file
-texts = []
+tokenizer = get_tokenizer()
+
+# Load MIDI data
+tracks = []
+val_tracks = []
 for file in os.listdir('txt_aug'):
     if file.endswith('.txt'):
         with open(f'txt_aug/{file}', 'r') as f:
             text = f.read()
-            texts.append(text)
-
-# Split into tracks
-tracks = []
-current_track = []
-for token in data.tolist():
-    if token == 20:  # Token "20" represents [TRACK_START]
-        if current_track:
-            tracks.append(torch.tensor(current_track[1:])) #remove the \n token
+            tokens = tokenizer.encode(text)
+            
+            # Split tokens into tracks
             current_track = []
-    else:
-        current_track.append(token)
+            for token in tokens:
+                # Token value 20 represents the start of a new track
+                if token == 20:
+                    if current_track:
+                        tracks.append(torch.tensor(current_track[1:]))  # Remove the \n token
+                        current_track = []
+                else:
+                    current_track.append(token)
+            
+            # Append the last track
+            if current_track:
+                current_track = current_track[1:]
+                tracks.append(torch.tensor(current_track))
+            
+            # Split tracks into train and val sets
+            split_idx = int(0.9 * len(tracks))
+            train_tracks = tracks[:split_idx]
+            val_tracks = tracks[split_idx:]
 
-# Append the last track
-if current_track:
-    current_track = current_track[1:]
-    tracks.append(torch.tensor(current_track))
-
-
-tokenizer = get_tokenizer()
 vocab_size = len(tokenizer.encoder)
 
-data = torch.tensor(tokenizer.encode(texts[0]), dtype=torch.long)
-
-n = int(0.9*len(data)) # first 90% will be train, rest val
-
-train_data = data[:n]
-val_data = data[n:]
 
 
 # Data loading
 def get_batch(split):
-    data = tracks if split == 'train' else val_data
+    data = tracks if split == 'train' else val_tracks
     
     # Randomly sample a batch of tracks
     track_indices = torch.randint(0, len(data), (batch_size,))
@@ -90,7 +90,7 @@ def estimate_loss():
     model.eval()
     for split in ['train', 'val']:
         losses = []
-        data = tracks if split == 'train' else val_data
+        data = tracks if split == 'train' else val_tracks
         for track in data:
             x = torch.tensor(track[:-1], dtype=torch.long, device=device).unsqueeze(0)
             y = torch.tensor(track[1:], dtype=torch.long, device=device).unsqueeze(0)
