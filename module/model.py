@@ -1,13 +1,13 @@
 import torch
 import torch.nn as nn
 from torch.nn import functional as F
+from midi_tokenizer import get_tokenizer
 import os
-import numpy as np
 
 # relative context
 # hyperparameters
 batch_size = 64 # how many independent sequences will we process in parallel?
-block_size = 256 # what is the maximum context length for predictions? --> (Probably need longer)
+block_size = 1024 # what is the maximum context length for predictions?
 
 max_iters = 5000
 eval_interval = 500
@@ -15,9 +15,9 @@ learning_rate = 3e-4
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 eval_iters = 200
 
-n_embd = 240
+n_head = 24
 
-n_head = 10 #10 --> each head is 240/10 = 24
+n_embd = 24*24
 
 n_layer = 12 #12
 dropout = 0.2
@@ -34,14 +34,31 @@ for file in os.listdir('txt_aug'):
             text = f.read()
             texts.append(text)
 
-# text = list(np.concatenate(texts).flat)
-# len(text)
-
 tokenizer = get_tokenizer()
 vocab_size = len(tokenizer.encoder)
 
+data = torch.tensor(tokenizer.encode(text), dtype=torch.long)
+data = data[2:] # remove the first two tokens [PIECE_START] and \n
 
-data = torch.tensor(tokenizer.encode(texts[0]), dtype=torch.long)
+#Split into tracks
+tracks = []
+current_track = []
+for token in data.tolist():
+    if token == 20:  # Token "20" represents [TRACK_START]
+        if current_track:
+            tracks.append(torch.tensor(current_track[1:])) #remove the \n token
+            current_track = []
+    else:
+        current_track.append(token)
+
+# Append the last track
+if current_track:
+    current_track = current_track[1:]
+    tracks.append(torch.tensor(current_track))
+
+track_heads = len(tracks) # sounds stupid tho
+# time_embed = 
+
 
 
 n = int(0.9*len(data)) # first 90% will be train, rest val
@@ -212,6 +229,7 @@ class DaiJazz(nn.Module):
             idx = torch.cat((idx, idx_next), dim=1) # (B, T+1)
         return idx
 
+
 model = DaiJazz()
 m = model.to(device)
 # print the number of parameters in the model
@@ -219,21 +237,12 @@ print(sum(p.numel() for p in m.parameters())/1e6, 'M parameters')
 
 # create a PyTorch optimizer
 optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
-previous = None
 for iter in range(max_iters):
 
     # every once in a while evaluate the loss on train and val sets
-
     if iter % eval_interval == 0 or iter == max_iters - 1:
         losses = estimate_loss()
         print(f"step {iter}: train loss {losses['train']:.4f}, val loss {losses['val']:.4f}")
-        if previous == None or previous >= float(losses['val']):
-          previous = float(losses['val'])
-          torch.save(model, 'best.pth')
-
-        torch.save(model, 'last.pth')
-
-
 
     # sample a batch of data
     xb, yb = get_batch('train')

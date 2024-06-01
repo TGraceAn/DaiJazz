@@ -1,66 +1,7 @@
 from mido import MidiFile, midifiles, MetaMessage, MidiTrack
 import os
 
-"""
-TOKENS Explanations
 
-###
-MESSAGE: The message that is being sent
-
-### WHAT?
-NOTE_ON: Specify the beginning of the note (0)
-NOTE_OFF: Specify the end of the note (Sending a note_on with velocity = 0 is considered a note_off) (1)
-CONTROL_CHANGE: For uses in pedals and stuffs (2)
-
-### WHICH?
-NOTE: Which note do I play
-CONTROL: Which control am I using (NOOOOOO NONE OF THE DATASETS HAS THIS)
-
-### HOW?
-VELOCITY: How hard the note is played
-VALUE: How should I use it? (NOOOOOO NONE OF THE DATASETS HAS THIS)
-
-### WHEN?
-DELTA_TIME: Specify when it starts after the previous message
-
-PIECE_START: DENOTE THE START OF THE PIECE
-TRACK_START: DENOTE THE START OF A TRACK IN A PIECE
-TRACK_END: DENOTE THE END OF A TRACK IN A PIECE
-BAR_START:
-BAR_END:
-TIME_SHIFT: Can use in place of DELTA_TIME
-
-INSTRUMENT: Specify the instrument of choice
-
-FILL_PLACEHOLDER: Notify the model where to fill in the blanks
-
-FILL_START: 
-FILL_END: 
-"""
-
-
-TOKENS = ['[MESSAGE]','[WHAT]','[WHICH]', '[HOW]',
-          '[WHERE]','[DELTA_TIME]','[PIECE_START]',
-          '[TRACK_START]', '[TRACK_END]','[BAR_START]',
-          '[BAR_END]','[TIME_SHIFT]', '[INSTRUMENT]',
-          '[FILL_PLACEHOLDER]','[FILL_START]', '[FILL_END]']
-
-ADDED_TOKENS = ['[PIECE_START]','[TRACK_START]', '[TRACK_END]',
-                '[INSTRUMENT]','[FILL_PLACEHOLDER]','[FILL_START]', '[FILL_END]']
-
-
-"""
-preprocess the type 1 data
-"""
-
-message_dict = {
-    'note_on': 0,
-    'note_off': 1,
-    'control_change': 2,
-    'polytouch': 3,
-    'pitchwheel': 4,
-    'aftertouch': 5,
-}
 def pre_process_type_1(mid, file_name):
     playing = False
     
@@ -104,13 +45,13 @@ def pre_process_type_1(mid, file_name):
                         try:
                             if msg.channel == 9: #If the channel is 9, it is a percussion instrument
                                 if msg.type == 'program_change':
-                                    message = f'[INSTRUMENT] {msg.program}.'
+                                    message = f'[INSTRUMENT]:{msg.program}.'
                                     non_added_time += msg.time
                                     adding = True
                                     file.write(message + '\n')
                             else:
                                 if msg.type == 'program_change':
-                                    message = f'[INSTRUMENT] {msg.program}'
+                                    message = f'[INSTRUMENT]:{msg.program}'
                                     non_added_time += msg.time
                                     adding = True
                                     file.write(message + '\n')
@@ -131,7 +72,7 @@ def pre_process_type_1(mid, file_name):
                                 message = '[WHAT]:3 [WHICH]:{} [HOW]:{} [WHEN]:{}'.format(msg.note, msg.value, msg.time)
                                 file.write(message + '\n')
                             elif msg.type == 'pitchwheel':
-                                message = '[WHAT]:4 [HOW]:{} [WHEN]:{}'.format(msg.pitch, msg.time)
+                                message = '[WHAT]:4 [PITCH]:{} [WHEN]:{}'.format(msg.pitch, msg.time)
                                 file.write(message + '\n')
                             elif msg.type == 'aftertouch':
                                 message = '[WHAT]:5 [HOW]:{} [WHEN]:{}'.format(msg.value, msg.time)
@@ -294,13 +235,13 @@ def change021_txt(mid, file_name):
                         try:
                             if msg.channel == 9: #If the channel is 9, it is a percussion instrument
                                 if msg.type == 'program_change':
-                                    message = f'[INSTRUMENT] {msg.program}.'
+                                    message = f'[INSTRUMENT]:{msg.program}.'
                                     non_added_time += msg.time
                                     adding = True
                                     file.write(message + '\n')
                             else:
                                 if msg.type == 'program_change':
-                                    message = f'[INSTRUMENT] {msg.program}'
+                                    message = f'[INSTRUMENT]:{msg.program}'
                                     non_added_time += msg.time
                                     adding = True
                                     file.write(message + '\n')

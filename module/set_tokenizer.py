@@ -2,10 +2,11 @@ import json
 import os
 import regex as re
 
-TOKENS = ['[WHAT]', '[WHICH]', '[HOW]', '[WHEN]', '[PIECE_START]','[TRACK_START]', '[TRACK_END]',
-                '[INSTRUMENT]','[FILL_PLACEHOLDER]','[FILL_START]', '[FILL_END]']
 
-pattern = re.compile('|'.join(re.escape(token) for token in TOKENS))
+SIMPLE_TOKENS = ['[PIECE_START]', '[TRACK_START]', '[TRACK_END]', '[FILL_PLACEHOLDER]', '[FILL_START]', '[FILL_END]']
+REGEX_TOKENS = [r'(?:\[WHAT\]\:\d+)', r'(?:\[WHICH\]\:\d+)', r'(?:\[HOW\]\:\d+)', r'(?:\[WHEN\]\:\d+)', r'(?:\[INSTRUMENT\]\:\d+|\d+\.)', r'(?:\[PITCH\]\:\d+)']
+
+pattern = re.compile('|'.join(SIMPLE_TOKENS + REGEX_TOKENS))
 
 def get_tokens(path):
     # Create a tokenizer file 
