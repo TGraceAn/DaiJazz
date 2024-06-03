@@ -1,9 +1,15 @@
 from mido import MidiFile, midifiles, MetaMessage, MidiTrack
 import os
+from data_analysis import max_resolution
 
+# standard = max_resolution('data')
+
+standard = 1024
+# Still writing the standard resolution
 
 def pre_process_type_1(mid, file_name):
     playing = False
+    resolution = mid.ticks_per_beat
     
     #Save into a text file which is easy to read
     #Make a new directory to save the text file
@@ -21,6 +27,7 @@ def pre_process_type_1(mid, file_name):
                     playing = True
                     break
                     
+
             if playing == True:
                 file.write('[TRACK_START]\n')
                 # file.write('Track {}: {}\n'.format(i, track.name))
@@ -30,6 +37,13 @@ def pre_process_type_1(mid, file_name):
                 adding = False
 
                 for msg in track:
+
+                    time = msg.time/resolution
+                    time = time*standard
+                    if int(time + 0.5) == int(time) + 1:
+                        msg.time = int(time + 0.5)
+                    else:
+                        msg.time = int(time)
 
                     if adding:
                         msg.time += non_added_time
@@ -57,25 +71,23 @@ def pre_process_type_1(mid, file_name):
                                     file.write(message + '\n')
 
                             if msg.type == 'note_on':
-                                message = '[WHAT]:0 [WHICH]:{} [HOW]:{} [WHEN]:{}'.format(msg.note, msg.velocity, msg.time)
-                                if msg.velocity == 0:
-                                    message = '[WHAT]:1 [WHICH]:{} [HOW]:{} [WHEN]:{}'.format(msg.note, msg.velocity, msg.time)
+                                message = '[WHAT]:0_{} [HOW]:{} [WHEN]:{}'.format(msg.note, msg.velocity, msg.time) #range if velocity [0,127]
                                 file.write(message + '\n')
                             elif msg.type == 'note_off':
                                 msg.velocity = 0
-                                message = '[WHAT]:1 [WHICH]:{} [HOW]:{} [WHEN]:{}'.format(msg.note, msg.velocity, msg.time)
+                                message = '[WHAT]:0_{} [HOW]:{} [WHEN]:{}'.format(msg.note, msg.velocity, msg.time)
                                 file.write(message + '\n')
                             elif msg.type == 'control_change':
-                                message = '[WHAT]:2 [WHICH]:{} [HOW]:{} [WHEN]:{}'.format(msg.control, msg.value, msg.time)
+                                message = '[WHAT]:2_{} [CC_V]:{} [WHEN]:{}'.format(msg.control, msg.value, msg.time)
                                 file.write(message + '\n')
                             elif msg.type == 'polytouch':
-                                message = '[WHAT]:3 [WHICH]:{} [HOW]:{} [WHEN]:{}'.format(msg.note, msg.value, msg.time)
+                                message = '[WHAT]:3_{} [HOW]:{} [WHEN]:{}'.format(msg.note, msg.value, msg.time)
                                 file.write(message + '\n')
                             elif msg.type == 'pitchwheel':
-                                message = '[WHAT]:4 [PITCH]:{} [WHEN]:{}'.format(msg.pitch, msg.time)
+                                message = '[WHAT]:4 [P_V]:{} [WHEN]:{}'.format(msg.pitch, msg.time)
                                 file.write(message + '\n')
                             elif msg.type == 'aftertouch':
-                                message = '[WHAT]:5 [HOW]:{} [WHEN]:{}'.format(msg.value, msg.time)
+                                message = '[WHAT]:5 [AT_V]:{} [WHEN]:{}'.format(msg.value, msg.time)
                                 file.write(message + '\n')
                         except:
                             non_added_time += msg.time
@@ -105,6 +117,7 @@ def change021_txt(mid, file_name):
     end_of_track_msg = None
     
     resolution = mid.ticks_per_beat
+    
 
     for msg in mid.tracks[0]:
         total_time += msg.time
@@ -221,6 +234,13 @@ def change021_txt(mid, file_name):
 
                 for msg in track:
 
+                    time = msg.time/resolution
+                    time = time*standard
+                    if int(time + 0.5) == int(time) + 1:
+                        msg.time = int(time + 0.5)
+                    else:
+                        msg.time = int(time)
+
                     if adding:
                         msg.time += non_added_time
                         non_added_time = 0
@@ -247,25 +267,23 @@ def change021_txt(mid, file_name):
                                     file.write(message + '\n')
 
                             if msg.type == 'note_on':
-                                message = '[WHAT]:0 [WHICH]:{} [HOW]:{} [WHEN]:{}'.format(msg.note, msg.velocity, msg.time)
-                                if msg.velocity == 0:
-                                    message = '[WHAT]:1 [WHICH]:{} [HOW]:{} [WHEN]:{}'.format(msg.note, msg.velocity, msg.time)
+                                message = '[WHAT]:0_{} [HOW]:{} [WHEN]:{}'.format(msg.note, msg.velocity, msg.time) #range if velocity [0,127]
                                 file.write(message + '\n')
                             elif msg.type == 'note_off':
                                 msg.velocity = 0
-                                message = '[WHAT]:1 [WHICH]:{} [HOW]:{} [WHEN]:{}'.format(msg.note, msg.velocity, msg.time)
+                                message = '[WHAT]:0_{} [HOW]:{} [WHEN]:{}'.format(msg.note, msg.velocity, msg.time)
                                 file.write(message + '\n')
                             elif msg.type == 'control_change':
-                                message = '[WHAT]:2 [WHICH]:{} [HOW]:{} [WHEN]:{}'.format(msg.control, msg.value, msg.time)
+                                message = '[WHAT]:2_{} [CC_V]:{} [WHEN]:{}'.format(msg.control, msg.value, msg.time)
                                 file.write(message + '\n')
                             elif msg.type == 'polytouch':
-                                message = '[WHAT]:3 [WHICH]:{} [HOW]:{} [WHEN]:{}'.format(msg.note, msg.value, msg.time)
+                                message = '[WHAT]:3_{} [HOW]:{} [WHEN]:{}'.format(msg.note, msg.value, msg.time)
                                 file.write(message + '\n')
                             elif msg.type == 'pitchwheel':
-                                message = '[WHAT]:4 [HOW]:{} [WHEN]:{}'.format(msg.pitch, msg.time)
+                                message = '[WHAT]:4 [P_V]:{} [WHEN]:{}'.format(msg.pitch, msg.time)
                                 file.write(message + '\n')
                             elif msg.type == 'aftertouch':
-                                message = '[WHAT]:5 [HOW]:{} [WHEN]:{}'.format(msg.value, msg.time)
+                                message = '[WHAT]:5 [AT_V]:{} [WHEN]:{}'.format(msg.value, msg.time)
                                 file.write(message + '\n')
                         except:
                             non_added_time += msg.time

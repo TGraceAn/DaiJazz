@@ -1,5 +1,6 @@
 import regex as re
 import os
+from mido import MidiFile, midifiles, MetaMessage, MidiTrack
 
 def analyze_data(path):
     max_note = find_highestnote(path)
@@ -67,3 +68,26 @@ def find_avgnote():
 def find_medianote():
     # Code to find the median note in the data
     pass
+
+def max_resolution(path):
+    max_resolution = 0
+    for files in os.listdir(path):
+        file = os.path.join(path, files)
+        if files.endswith('.mid'):
+            try:
+                mid = MidiFile(file)  
+                max_resolution = max(max_resolution, mid.ticks_per_beat) 
+            except:
+                continue
+            else:
+                pass
+        elif files.endswith('.midi'):
+            try:
+                mid = MidiFile(file)  
+                max_resolution = max(max_resolution, mid.ticks_per_beat)  
+            except:
+                continue
+            else:
+                pass
+
+    return max_resolution

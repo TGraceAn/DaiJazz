@@ -27,19 +27,16 @@ def change_num(path, file_name, num):
         if track_start:
             track4sub = True
             
-        precussion = re.search(r'\[INSTRUMENT\]\:\d+\.', line)
+        precussion = re.search(r'\[INSTRUMENT\] \d+\.', line)
         if precussion:
             track4sub = False
             
         if track4sub == True:
-            note_represent = re.search(r'(\[WHAT\]\:\d+ \[WHICH\]\:\d+ \[HOW\]\:\d+ \[WHEN\]\:\d+)', line)
+            note_represent = re.findall(r'(\d+\_\d+)', line)
             if note_represent:
-                note_represent = note_represent.group(1)
-                note_represent = note_represent.split(' ')
+                note = re.findall(r'\d+\_(\d+)', note_represent[0])
 
-                if int(note_represent[0][-1]) == 0 or int(note_represent[0][-1]) == 1:
-                    note = re.findall(r'\[WHICH\]\:(\d+)',line)
-                    
+                if int(note_represent[0][0]) == 0 or int(note_represent[0][0]) == 1:
                     note = str(int(note[0]) + num)
 
                     if int(note) > 127:
@@ -47,8 +44,7 @@ def change_num(path, file_name, num):
                     elif int(note) < 0:
                         note = str(0)
 
-                    line = re.sub(r'\[WHICH\]\:\d+', f'[WHICH]:{note}', line)
-
+                    line = re.sub(r'\d+_\d+', f'{note_represent[0][0]}_{note}', line)
                 updated_data.append(line)
             else:
                 updated_data.append(line)    
