@@ -5,7 +5,7 @@ from data_analysis import max_resolution
 # standard = max_resolution('data')
 
 standard = 1024
-# Still writing the standard resolution
+
 
 def pre_process_type_1(mid, file_name):
     playing = False
@@ -81,7 +81,7 @@ def pre_process_type_1(mid, file_name):
                                 message = '[WHAT]:2_{} [CC_V]:{} [WHEN]:{}'.format(msg.control, msg.value, msg.time)
                                 file.write(message + '\n')
                             elif msg.type == 'polytouch':
-                                message = '[WHAT]:3_{} [HOW]:{} [WHEN]:{}'.format(msg.note, msg.value, msg.time)
+                                message = '[WHAT]:3_{} [PT_V]:{} [WHEN]:{}'.format(msg.note, msg.value, msg.time)
                                 file.write(message + '\n')
                             elif msg.type == 'pitchwheel':
                                 message = '[WHAT]:4 [P_V]:{} [WHEN]:{}'.format(msg.pitch, msg.time)
