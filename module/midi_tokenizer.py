@@ -2,9 +2,11 @@ import json
 import regex as re
 from functools import lru_cache
 
-#Tokens
-TOKENS = ['[WHAT]', '[WHICH]', '[HOW]', '[WHEN]', '[PIECE_START]','[TRACK_START]', '[TRACK_END]',
-                '[INSTRUMENT]','[FILL_PLACEHOLDER]','[FILL_START]', '[FILL_END]']
+TOKENS = [r'\[WHAT\]\:\d+\_\d+', r'\[HOW\]\:\d+', r'\[WHEN\]\:', r'\[INSTRUMENT\]\:\d+',
+                r'\[CC_V\]\:\d+', r'\[PT_V\]\:\d+', r'\[AT_V\]\:\d+', r'\[P_V\]\:', r'\[INSTRUMENT\]\:\d+\.',
+                r'\[PIECE\_START\]', r'\[TRACK\_START\]', r'\[TRACK\_END\]', r'\[FILL\_PLACEHOLDER\]',
+                r'\[FILL\_START\]', r'\[FILL\_END\]']
+
 
 class Tokenizer:
     def __init__(self, encoder, errors='replace'):
@@ -14,7 +16,7 @@ class Tokenizer:
         self.cache = {}
 
         #paterm to catch the special tokens
-        self.pattern = re.compile('|'.join(re.escape(token) for token in TOKENS))
+        self.pattern = re.compile('|'.join(token for token in TOKENS))
 
     @lru_cache()
     def encode(self, text):
@@ -40,7 +42,7 @@ class Tokenizer:
 def get_tokenizer():
     with open('encoder.json', 'r') as f:
         encoder = json.load(f)
-        
+
     return Tokenizer(
         encoder=encoder
     )
@@ -48,19 +50,13 @@ def get_tokenizer():
 if __name__ == '__main__':
     demo_text = """[PIECE_START]
 [TRACK_START]
-[WHAT]:2 [WHICH]:121 [HOW]:0 [WHEN]:0
-[WHAT]:2 [WHICH]:67 [HOW]:0 [WHEN]:4
-[WHAT]:2 [WHICH]:64 [HOW]:0 [WHEN]:2
-[WHAT]:2 [WHICH]:100 [HOW]:0 [WHEN]:2
-[WHAT]:2 [WHICH]:101 [HOW]:0 [WHEN]:2
-[WHAT]:2 [WHICH]:6 [HOW]:12 [WHEN]:2
-[WHAT]:2 [WHICH]:11 [HOW]:127 [WHEN]:2
-[WHAT]:2 [WHICH]:1 [HOW]:0 [WHEN]:2
-[WHAT]:2 [WHICH]:11 [HOW]:127 [WHEN]:4
-[WHAT]:4 [HOW]:0 [WHEN]:4
-[WHAT]:2 [WHICH]:0 [HOW]:0 [WHEN]:1128
-[INSTRUMENT] 0."""
+[INSTRUMENT]:0
+[WHAT]:2_7 [CC_V]:90 [WHEN]:0
+[WHAT]:2_10 [CC_V]:64 [WHEN]:0
+[WHAT]:0_64 [HOW]:92 [WHEN]:34816
+[WHAT]:0_64 [HOW]:0 [WHEN]:672"""
     tokenizer = get_tokenizer()
-    encoded = tokenizer.encode(demo_text)
+#     tokenizer.peek_encoder()
 
-    print(tokenizer.decode(encoded))
+    encoded = tokenizer.encode(demo_text)
+    print(tokenizer.decode(encoded) == demo_text)
