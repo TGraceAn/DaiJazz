@@ -2,7 +2,6 @@ from mido import MidiFile, midifiles, MetaMessage, MidiTrack
 import os
 
 def piano_standard(mid, file_name):
-    playing = False
     
     #Save into a text file which is easy to read
     #Make a new directory to save the text file
@@ -42,8 +41,16 @@ def piano_standard(mid, file_name):
                                 message = f'[INSTRUMENT]:{msg.program}'
                                 non_added_time += msg.time
                                 adding = True
+                        
+
 
                         if msg.type == 'note_on':
+                            # Add padding to the velocity for inference
+                            if msg.velocity <= 4:
+                                msg.velocity = 4
+                            elif msg.velocity >= 127:
+                                msg.velocity = 116
+
                             message = '[WHAT]:0_{} [HOW]:{} [WHEN]:{}'.format(msg.note, msg.velocity, msg.time)
                             file.write(message + '\n')
                         elif msg.type == 'note_off':

@@ -76,7 +76,7 @@ def max_resolution(path):
         if files.endswith('.mid'):
             try:
                 mid = MidiFile(file)  
-                max_resolution = max(max_resolution, mid.ticks_per_beat) 
+                max_resolution = max(max_resolution, mid.ticks_per_beat)
             except:
                 continue
             else:
@@ -91,3 +91,33 @@ def max_resolution(path):
                 pass
 
     return max_resolution
+
+def velocity_span(path):
+    velocity = []
+    for files in os.listdir(path):
+        file = os.path.join(path, files)
+        if files.endswith('.mid'):
+            try:
+                mid = MidiFile(file)
+                for i, track in enumerate(mid.tracks):
+                    for msg in track:
+                        if msg.type == 'note_on' and msg.velocity not in velocity:
+                            velocity.append(msg.velocity)
+            except:
+                continue
+            else:
+                pass
+        elif files.endswith('.midi'):
+            try:
+                mid = MidiFile(file)
+                for i, track in enumerate(mid.tracks):
+                    for msg in track:
+                        if msg.type == 'note_on' and msg.velocity not in velocity:
+                            velocity.append(msg.velocity)
+            except:
+                continue
+            else:
+                pass
+    return velocity
+
+

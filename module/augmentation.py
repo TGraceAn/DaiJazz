@@ -12,6 +12,22 @@ def augmentation(path):
             for i in range(-5, 16):
                 change_num(f'{path}/{files}', file_name, i)
 
+
+###
+# Only use when creating training data for conditional generation
+
+def piano_jazz_aug(path):
+    # Load the txt file
+    if not os.path.exists('txt_aug'):
+        os.makedirs('txt_aug', exist_ok=True)
+
+    for files in os.listdir(path):
+        if files.endswith('.txt'):
+            file_name = files[0:-4]
+            for i in range(-22, 23):
+                change_num(f'{path}/{files}', file_name, i)
+
+
 """
 Overall implementation of the augmentation function
 """
@@ -47,7 +63,7 @@ def change_num(path, file_name, num):
                     line = re.sub(r'\d+_\d+', f'{note_represent[0][0]}_{note}', line)
                 updated_data.append(line)
             else:
-                updated_data.append(line)    
+                updated_data.append(line)
         else:
             updated_data.append(line)
 
