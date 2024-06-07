@@ -4,6 +4,7 @@ from torch.nn import functional as F
 import os
 import numpy as np
 from midi_tokenizer import get_tokenizer
+import regex as re
 
 # relative context
 # hyperparameters
@@ -16,9 +17,8 @@ learning_rate = 3e-4
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 eval_iters = 200
 
-n_embd = 240
-
-n_head = 10 #10 --> each head is 240/10 = 24
+n_embd = 2130 
+n_head = 10 #10 --> each head is 2130/10 = 213
 
 n_layer = 12 #12
 dropout = 0.2
@@ -29,39 +29,35 @@ torch.manual_seed(1162003)
 
 tokenizer = get_tokenizer()
 
-# Load MIDI data
+# Load MIDI data, each track is a piece of music in this context
 tracks = []
 val_tracks = []
-for file in os.listdir('txt_aug'):
+
+#regex to remove numbers after [WHEN]:
+pattern = r'\[WHEN\]:(\d+)'
+
+# an array to store all the numbers after [WHEN]:
+when_tokens = []
+
+for file in os.listdir('txt_out'):
     if file.endswith('.txt'):
-        with open(f'txt_aug/{file}', 'r') as f:
+        with open(f'txt_out/{file}', 'r') as f:
             text = f.read()
+            # Remove numbers after [WHEN]:
+            when_tokens = re.findall(r'\[WHEN\]:(\d+)', text)
+            text = re.sub(pattern, '[WHEN]:', text)
+
+            # Remove spaces
+            text = re.sub(r'\s+', '', text)
+
             tokens = tokenizer.encode(text)
-            
-            # Split tokens into tracks
-            current_track = []
-            for token in tokens:
-                # Token value 20 represents the start of a new track
-                if token == 20:
-                    if current_track:
-                        tracks.append(torch.tensor(current_track[1:]))  # Remove the \n token
-                        current_track = []
-                else:
-                    current_track.append(token)
-            
-            # Append the last track
-            if current_track:
-                current_track = current_track[1:]
-                tracks.append(torch.tensor(current_track))
-            
-            # Split tracks into train and val sets
-            split_idx = int(0.9 * len(tracks))
-            train_tracks = tracks[:split_idx]
-            val_tracks = tracks[split_idx:]
+            tracks.append(tokens)
+        
+# Create training and validation
+
+
 
 vocab_size = len(tokenizer.encoder)
-
-
 
 # Data loading
 def get_batch(split):

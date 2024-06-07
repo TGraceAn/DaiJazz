@@ -5,7 +5,7 @@ import re
 REGEX_TOKENS = [r'\[WHAT\]\:\d+\_\d+', r'\[HOW\]\:\d+', r'\[WHEN\]:', r'\[INSTRUMENT\]\:\d+',
                 r'\[CC_V\]\:\d+', r'\[PT_V\]\:\d+', r'\[AT_V\]\:\d+', r'\[P_V\]:', r'\[INSTRUMENT\]\:\d+\.',
                 r'\[PIECE\_START\]', r'\[TRACK\_START\]', r'\[TRACK\_END\]', r'\[FILL\_PLACEHOLDER\]',
-                r'\[FILL\_START\]', r'\[FILL\_END\]']
+                r'\[FILL\_START\]', r'\[FILL\_END\]',r'\[PIECE\_END\]']
 
 NUMBER_PATTERN = r'\d+'
 pattern = re.compile('|'.join(REGEX_TOKENS))
@@ -58,4 +58,4 @@ def get_tokens(path):
         json.dump(encoded, f)
 
 if __name__ == '__main__':
-    get_tokens(path='/Users/thienannguyen/Desktop/7th_Test/txt_aug')
+    get_tokens(path='/Users/thienannguyen/Desktop/8th_Test/txt_out')
