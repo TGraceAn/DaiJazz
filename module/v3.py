@@ -1,28 +1,29 @@
 import torch
 import torch.nn as nn
 from torch.nn import functional as F
-import os
-import numpy as np
+from torch.nn.utils import weight_norm
 import regex as re
 from midi_tokenizer import get_tokenizer
 from tqdm import tqdm
+import math
+
 
 # relative context
 # hyperparameters
 batch_size = 64 # how many independent sequences will we process in parallel?
-block_size = 2048 # what is the maximum context length for predictions? --> (Probably need longer)
+block_size = 512 # what is the maximum context length for predictions? --> (Probably need longer)
 
 max_iters = 5000
 eval_interval = 500
 learning_rate = 3e-4
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
+device = 'cuda'
 eval_iters = 200
 
-n_embd = 2140 
+n_embd = 2130 
 
-n_head = 10 #10 --> each head is n_embd/n_head = vocab_size
+n_head = 10 #10 --> each head is 2130/10 = 213
 n_layer = 6 #12
-dropout = 0.2
+dropout = 0.1
 # ------------
 
 
@@ -129,18 +130,52 @@ class Head(nn.Module):
         out = wei @ v # (B, T, T) @ (B, T, hs) -> (B, T, hs)
         return out
 
-class MultiHeadAttention(nn.Module):
-    """ multiple heads of self-attention in parallel """
-
-    def __init__(self, num_heads, head_size):
+class RelativeMultiHeadAttention(nn.Module):
+    def __init__(self, n_head, d_model, d_head, dropout, r_w_bias=None, r_r_bias=None, scale=False):
         super().__init__()
-        self.heads = nn.ModuleList([Head(head_size) for _ in range(num_heads)])
-        self.proj = nn.Linear(head_size * num_heads, n_embd)
+        self.n_head = n_head
+        self.d_model = d_model
+        self.d_head = d_head
+        self.scale = scale
+        self.qkv_linear = nn.Linear(d_model, d_model * 3, bias=False)
+        self.fc = nn.Linear(d_head * n_head, d_model, bias=False)
         self.dropout = nn.Dropout(dropout)
+        if r_r_bias is None or r_w_bias is None:
+            self.r_r_bias = nn.Parameter(torch.zeros((n_head, d_head)))
+            self.r_w_bias = nn.Parameter(torch.zeros((n_head, d_head)))
+        else:
+            self.r_r_bias = r_r_bias
+            self.r_w_bias = r_w_bias
 
-    def forward(self, x):
-        out = torch.cat([h(x) for h in self.heads], dim=-1)
-        out = self.dropout(self.proj(out))
+    def forward(self, x, r_r_buckets, r_w_buckets, r_emb, attn_mask=None):
+        qkv = self.qkv_linear(x)
+        q, k, v = torch.chunk(qkv, 3, dim=-1)
+        q = q.view(*q.size()[:2], self.n_head, self.d_head).transpose(1, 2)
+        k = k.view(*k.size()[:2], self.n_head, self.d_head).transpose(1, 2)
+        v = v.view(*v.size()[:2], self.n_head, self.d_head).transpose(1, 2)
+
+        r_r_emb = r_emb(r_r_buckets)
+        r_w_emb = r_emb(r_w_buckets)
+
+        qr = torch.einsum('bxhd,hd->bxh', q, self.r_r_bias)
+        qr = torch.einsum('bxh,bhd->bxhd', qr, r_r_emb)
+        kr = torch.einsum('byhd,hd->byh', k, self.r_w_bias)
+        kr = torch.einsum('byh,bhd->byhd', kr, r_w_emb)
+
+        if self.scale:
+            q = q / math.sqrt(self.d_head)
+
+        attn_weights = torch.einsum('bxhd,byhd->bxyh', q, k)
+        attn_weights = attn_weights + qr[:, :, None] + kr[:, None, :, :]
+
+        if attn_mask is not None:
+            attn_weights = attn_weights + attn_mask
+
+        attn_weights = F.softmax(attn_weights, dim=3)
+        attn_weights = self.dropout(attn_weights)
+        out = torch.einsum('bxyh,byhd->bxhd', attn_weights, v)
+        out = out.transpose(1, 2).contiguous().view(*out.size()[:2], self.d_model)
+        out = self.fc(out)
         return out
 
 class FeedFoward(nn.Module):
@@ -149,44 +184,39 @@ class FeedFoward(nn.Module):
     def __init__(self, n_embd):
         super().__init__()
         self.net = nn.Sequential(
-            nn.Linear(n_embd, 4 * n_embd),
+            weight_norm(nn.Linear(n_embd, 4 * n_embd)),
             nn.ReLU(),
-            nn.Linear(4 * n_embd, n_embd),
             nn.Dropout(dropout),
+            weight_norm(nn.Linear(4 * n_embd, n_embd)),
         )
 
     def forward(self, x):
         return self.net(x)
 
 class Block(nn.Module):
-    """ Transformer block: communication followed by computation """
-
-    def __init__(self, n_embd, n_head):
-        # n_embd: embedding dimension, n_head: the number of heads we'd like
+    def __init__(self, n_head, d_model, d_head, dropout, r_w_bias=None, r_r_bias=None, scale=False):
         super().__init__()
-        head_size = n_embd // n_head
-        self.sa = MultiHeadAttention(n_head, head_size)
-        self.ffwd = FeedFoward(n_embd)
-        self.ln1 = nn.LayerNorm(n_embd)
-        self.ln2 = nn.LayerNorm(n_embd)
+        self.attn = RelativeMultiHeadAttention(n_head, d_model, d_head, dropout, r_w_bias, r_r_bias, scale)
+        self.ffwd = FeedFoward(d_model)
+        self.ln1 = nn.LayerNorm(d_model)
+        self.ln2 = nn.LayerNorm(d_model)
 
-    def forward(self, x):
-        x = x + self.sa(self.ln1(x))
+    def forward(self, x, r_r_buckets, r_w_buckets, r_emb, attn_mask=None):
+        x = x + self.attn(self.ln1(x), r_r_buckets, r_w_buckets, r_emb, attn_mask)
         x = x + self.ffwd(self.ln2(x))
         return x
 
 class DaiJazz_Piano(nn.Module):
-
     def __init__(self):
         super().__init__()
-        # each token directly reads off the logits for the next token from a lookup table
         self.token_embedding_table = nn.Embedding(vocab_size, n_embd)
         self.position_embedding_table = nn.Embedding(block_size, n_embd)
-        self.blocks = nn.Sequential(*[Block(n_embd, n_head=n_head) for _ in range(n_layer)])
-        self.ln_f = nn.LayerNorm(n_embd) # final layer norm
+        self.r_w_bias = nn.Parameter(torch.zeros((n_head, n_embd // n_head)))
+        self.r_r_bias = nn.Parameter(torch.zeros((n_head, n_embd // n_head)))
+        self.r_emb = nn.Embedding(2 * block_size - 1, n_embd // n_head)
+        self.blocks = nn.Sequential(*[Block(n_head, n_embd, n_embd // n_head, dropout, self.r_w_bias, self.r_r_bias) for _ in range(n_layer)])
+        self.ln_f = nn.LayerNorm(n_embd)
         self.lm_head = nn.Linear(n_embd, vocab_size)
-
-        # better init, not covered in the original GPT video, but important, will cover in followup video
         self.apply(self._init_weights)
 
     def _init_weights(self, module):
@@ -199,14 +229,15 @@ class DaiJazz_Piano(nn.Module):
 
     def forward(self, idx, targets=None):
         B, T = idx.shape
-
-        # idx and targets are both (B,T) tensor of integers
-        tok_emb = self.token_embedding_table(idx) # (B,T,C)
-        pos_emb = self.position_embedding_table(torch.arange(T, device=device)) # (T,C)
-        x = tok_emb + pos_emb # (B,T,C)
-        x = self.blocks(x) # (B,T,C)
-        x = self.ln_f(x) # (B,T,C)
-        logits = self.lm_head(x) # (B,T,vocab_size)
+        tok_emb = self.token_embedding_table(idx)
+        pos_emb = self.position_embedding_table(torch.arange(T, device=device))
+        x = tok_emb + pos_emb
+        r_r_buckets = self.relative_buckets(T, rel_type='relative')
+        r_w_buckets = self.relative_buckets(T, rel_type='window')
+        for block in self.blocks:
+            x = block(x, r_r_buckets, r_w_buckets, self.r_emb)
+        x = self.ln_f(x)
+        logits = self.lm_head(x)
 
         if targets is None:
             loss = None
@@ -217,6 +248,14 @@ class DaiJazz_Piano(nn.Module):
             loss = F.cross_entropy(logits, targets)
 
         return logits, loss
+
+    def relative_buckets(self, T, rel_type='relative'):
+        if rel_type == 'relative':
+            buck = torch.arange(-T + 1, T, device=device)
+        else:
+            buck = torch.arange(T, device=device)
+        buck = buck.unsqueeze(0).expand(self.n_head, -1)
+        return buck
 
     def generate(self, idx, max_new_tokens):
         # idx is (B, T) array of indices in the current context
