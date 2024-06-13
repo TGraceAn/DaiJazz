@@ -158,7 +158,6 @@ class DataLoader:
         self.i = 0
         self.train_epoch = 0
 
-        self.i_val = 0
 
     def __iter__(self):
         B, T = self.B, self.T
@@ -169,25 +168,29 @@ class DataLoader:
         if self.i + (B * T + 1) >= len(self.tokens):
             self.i = 0
             self.train_epoch += 1
-
         return x, y
     
-    def val_loader(self, steps):
+    def val_loader(self, step):
         B, T = self.B, self.T
-        buf = self.val_tokens[self.i_val:self.i_val + B*T]
+        pointer = step * B * T
+        buf = self.val_tokens[pointer:pointer + B*T]
         x = (buf[:-1]).view(B, T)
         y = (buf[1:]).view(B, T)
-
-        if steps == self.val_steps:
-            self.i_val = 0
-        self.i_val += B*T
-        if self.i_val + (B * T + 1) >= len(self.val_tokens):
-            self.i_val = 0
-
+        return x, y
+    
+    # inplace of __iter__ --> Use when need to do gradient accumulation
+    def next_batch(self):
+        B, T = self.B, self.T
+        buf = self.tokens[self.i:self.i + B*T]
+        x = (buf[:-1]).view(B, T)
+        y = (buf[1:]).view(B, T)
+        self.i += B*T
+        if self.i + (B * T + 1) >= len(self.tokens):
+            self.i = 0
+            self.train_epoch += 1
         return x, y
 
 #--------------------------------
-
 def get_val_loss(model, data_loader):
     model.eval()
     total_loss = 0
@@ -215,7 +218,15 @@ def training_pipeline():
     model = DaiJazz_Piano(config)
     model.to(device)
 
-    data_loader = DataLoader(B=16, T=512)
+    B = 16
+    T = 512
+
+    # # This is for gradient accumulation
+    # total_batch_size = 524288
+    # assert total_batch_size % (B * T) == 0, 'Batch size must divide total batch size'
+    # gradient_accumulation_steps = total_batch_size // (B * T)
+
+    data_loader = DataLoader(B=B, T=T)
 
     #cosine learning rate decay
     max_lr = 6e-4
@@ -230,14 +241,13 @@ def training_pipeline():
 
     while data_loader.train_epoch < 20:
         for i, (x, y) in enumerate(data_loader):
-            # calculate time
             current_epoch = data_loader.train_epoch
-
+            x, y = x.to(device), y.to(device)
             optimizer.zero_grad()
             logits, loss = model(x, y)
             loss.backward()
             norm = torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
-            
+
             #Warmup learning rate
             if data_loader.train_epoch == 0:
                 lr = get_lr(i, max_lr, min_lr, warmup_steps, max_steps)
