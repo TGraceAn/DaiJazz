@@ -31,17 +31,49 @@ class MLP(nn.Module):
         x = self.c_proj(x)
         return x
 
-# RelativeMultiHeadAttention from Music Transformer
-class RelativeMultiHeadAttention(nn.Module):
-    pass
+class CausalSelfAttention(nn.Module):
+    
+    def __init__(self, config):
+        super().__init__()
+        assert config.n_embd % config.n_head == 0
+        # key, query, value projections for all heads, but in a batch
+        self.c_attn = nn.Linear(config.n_embd, 3 * config.n_embd)
+        # output projection
+        self.c_proj = nn.Linear(config.n_embd, config.n_embd)
+        self.c_proj.NANOGPT_SCALE_INIT = 1
+        # regularization
+        self.n_head = config.n_head
+        self.n_embd = config.n_embd
+        # not really a 'bias', more of a mask, but following the OpenAI/HF naming though
+        self.register_buffer("bias", torch.tril(torch.ones(config.block_size, config.block_size))
+                                     .view(1, 1, config.block_size, config.block_size))
+
+    def forward(self, x):
+        B, T, C = x.size() # batch size, sequence length, embedding dimensionality (n_embd)
+        # calculate query, key, values for all heads in batch and move head forward to be the batch dim
+        # nh is "number of heads", hs is "head size", and C (number of channels) = nh * hs
+        # e.g. in GPT-2 (124M), n_head=12, hs=64, so nh*hs=C=768 channels in the Transformer
+        qkv = self.c_attn(x)
+        q, k, v = qkv.split(self.n_embd, dim=2)
+        k = k.view(B, T, self.n_head, C // self.n_head).transpose(1, 2) # (B, nh, T, hs)
+        q = q.view(B, T, self.n_head, C // self.n_head).transpose(1, 2) # (B, nh, T, hs)
+        v = v.view(B, T, self.n_head, C // self.n_head).transpose(1, 2) # (B, nh, T, hs)
+        y = F.scaled_dot_product_attention(q, k, v, is_causal=True) # flash attention
+        y = y.transpose(1, 2).contiguous().view(B, T, C) # re-assemble all head outputs side by side
+        # output projection
+        y = self.c_proj(y)
+        return y
 
 # Can you RelativeMultiHeadAttention or MultiHeadSelfAttention?
 class Block(nn.Module):
     def __init__(self, config: ModelConfig):
         super().__init__()
         self.ln_1 = nn.LayerNorm(config.n_embd)
-        # Multihead attention layer should be self-attention
-        self.attn = nn.MultiheadAttention(config.n_embd, config.n_head, dropout=0.2) #Dropout is 0.2
+
+        
+        self.attn = CausalSelfAttention(config)
+
+
         self.ln_2 = nn.LayerNorm(config.n_embd)
         self.mlp = MLP(config)
 
@@ -114,6 +146,9 @@ class DaiJazz_Piano(nn.Module):
             # loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1))
 
         return logits, loss
+    
+    
+
 
 
 #-------------------------
@@ -138,16 +173,22 @@ class DataLoader:
                     self.tracks.append(tokens)
                 
         #split into train and validation (90% train, 10% validation)
-        self.tracks = self.tracks[:int(0.9*len(self.tracks))]
-        self.val = self.tracks[int(0.9*len(self.tracks)):]
-        
-        #concatenate all tracks
-        self.tracks = torch.cat(self.tracks)
-        self.val = torch.cat(self.val)
+        n = len(self.tracks)
 
+        self.val = self.tracks[int(0.9*n):]
+        self.tracks = self.tracks[:int(0.9*n)]
+
+        
         #return tensors
-        self.tokens = torch.tensor(self.tracks, dtype=torch.long)
-        self.val_tokens = torch.tensor(self.val, dtype=torch.long)
+        for i in range(len(self.tracks)):
+            self.tracks[i] = torch.tensor(self.tracks[i], dtype=torch.long)
+        for i in range(len(self.val)):
+            self.val[i] = torch.tensor(self.val[i], dtype=torch.long)
+
+        #concatenate all tracks
+        self.tokens = torch.cat(self.tracks)
+        self.val_tokens = torch.cat(self.val)
+
 
         print(f'Loaded {len(self.tracks)} tracks, {len(self.tokens)} tokens')
         print(f'1 Epoch = {len(self.tokens) // (B * T)} batches')
@@ -161,7 +202,7 @@ class DataLoader:
 
     def __iter__(self):
         B, T = self.B, self.T
-        buf = self.tokens[self.i:self.i + B*T]
+        buf = self.tokens[self.i:self.i + B*T + 1]
         x = (buf[:-1]).view(B, T) # inputs
         y = (buf[1:]).view(B, T) # targets
         self.i += B*T
@@ -173,7 +214,7 @@ class DataLoader:
     def val_loader(self, step):
         B, T = self.B, self.T
         pointer = step * B * T
-        buf = self.val_tokens[pointer:pointer + B*T]
+        buf = self.val_tokens[pointer:pointer + B*T +1]
         x = (buf[:-1]).view(B, T)
         y = (buf[1:]).view(B, T)
         return x, y
@@ -181,7 +222,7 @@ class DataLoader:
     # inplace of __iter__ --> Use when need to do gradient accumulation
     def next_batch(self):
         B, T = self.B, self.T
-        buf = self.tokens[self.i:self.i + B*T]
+        buf = self.tokens[self.i:self.i + B*T + 1]
         x = (buf[:-1]).view(B, T)
         y = (buf[1:]).view(B, T)
         self.i += B*T
@@ -199,7 +240,7 @@ def get_val_loss(model, data_loader):
             x, y = data_loader.val_loader(i)
             logits, loss = model(x, y)
             total_loss += loss.item()
-    return total_loss / len(data_loader.val_tokens)
+    return total_loss / data_loader.val_steps
 
 #Cosine learning rate decay
 def get_lr(it, max_lr, min_lr, warmup_steps, max_steps):
@@ -213,10 +254,30 @@ def get_lr(it, max_lr, min_lr, warmup_steps, max_steps):
     coeff = 0.5 * (1.0 + torch.cos(torch.tensor(decay_ratio) * 3.14159))
     return min_lr + coeff * (max_lr - min_lr)
 
+def generate(model, prompt, max_len=1024):
+    model.eval()
+    with torch.no_grad():
+        tokens = tokenizer.encode(prompt)
+        x = torch.tensor(tokens, dtype=torch.long).unsqueeze(0).to(device)
+        for _ in range(max_len):
+            logits, _ = model(x)
+            next_token = torch.argmax(logits[0, -1, :])
+            tokens.append(next_token.item())
+            x = torch.cat((x, next_token.unsqueeze(0).unsqueeze(0)), dim=1)
+        return tokenizer.decode(tokens)
+    
+#--------------------------------
+
 def training_pipeline():
     config = ModelConfig()
     model = DaiJazz_Piano(config)
+
+
     model.to(device)
+
+    # Show the number of parameters
+    print("Generating model with the following parameters:")
+    print(sum(p.numel() for p in model.parameters())/1e6, 'M parameters')
 
     B = 16
     T = 512
@@ -226,6 +287,7 @@ def training_pipeline():
     # assert total_batch_size % (B * T) == 0, 'Batch size must divide total batch size'
     # gradient_accumulation_steps = total_batch_size // (B * T)
 
+
     data_loader = DataLoader(B=B, T=T)
 
     #cosine learning rate decay
@@ -233,50 +295,63 @@ def training_pipeline():
     min_lr = max_lr*0.1
     # num_tokens = data_loader.tokens
 
-    max_steps = len(data_loader.tokens) // data_loader.B * data_loader.T
+    max_steps = len(data_loader.tokens) // (data_loader.B * data_loader.T)
     warmup_steps = max_steps // 10
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=3e-4, betas=(0.9, 0.95), eps=1e-8)
+    optimizer = torch.optim.Adam(model.parameters(), lr=3e-4, betas=(0.9, 0.95), eps=1e-8, weight_decay=0.1)
+
+    # scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, max_steps, eta_min=min_lr)
+
     start_time = time.time()
 
+    it = 0
+    previous_val_loss = None
+
     while data_loader.train_epoch < 20:
-        for i, (x, y) in enumerate(data_loader):
+        current_epoch = data_loader.train_epoch
+        x, y = data_loader.next_batch()
+        x, y = x.to(device), y.to(device)
+        optimizer.zero_grad()
+        logits, loss = model(x, y)
+        loss.backward()
+        norm = torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+
+        # scheduler.step()
+        # lr = optimizer.param_groups[0]['lr']
+
+
+        #Warmup learning rate
+        if data_loader.train_epoch == 0:
+            lr = get_lr(it, max_lr, min_lr, warmup_steps, max_steps)
+            for param_group in optimizer.param_groups:
+                param_group['lr'] = lr
+
+        optimizer.step()
+        # synchronize
+        torch.cuda.synchronize()
+
+        if it % 10 == 0:
+            end_time = time.time()
+            print(f'Epoch {data_loader.train_epoch}, Iteration {it}, Loss {loss.item()}, Average time {(end_time - start_time)*1000/10}ms, Norm {norm:.4f}, LR {lr:.4f}')
+            
+            start_time = time.time()
+
+        it += 1
+        
+        # Evaluate the model at the end/beginning of each epoch (I'm not sure)
+        if current_epoch != data_loader.train_epoch:
+            val_loss = get_val_loss(model, data_loader.val_loader())
+            print(f'Validation loss: {val_loss}')
+            if previous_val_loss == None or previous_val_loss >= val_loss:
+                previous_val_loss = val_loss
+                print('Saving best model...')
+                torch.save(model.state_dict(), 'best.pth')
+
+            print('Saving last model...')
+            torch.save(model.state_dict(), 'last.pth')
+            model.train()
             current_epoch = data_loader.train_epoch
-            x, y = x.to(device), y.to(device)
-            optimizer.zero_grad()
-            logits, loss = model(x, y)
-            loss.backward()
-            norm = torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
 
-            #Warmup learning rate
-            if data_loader.train_epoch == 0:
-                lr = get_lr(i, max_lr, min_lr, warmup_steps, max_steps)
-                for param_group in optimizer.param_groups:
-                    param_group['lr'] = lr
-
-            optimizer.step()
-            # synchronize
-            torch.cuda.synchronize()
-
-            if i % 10 == 0:
-                end_time = time.time()
-                print(f'Epoch {data_loader.train_epoch}, Iteration {i}, Loss {loss.item()}, Average time {(end_time - start_time)*1000/10}ms, Norm {norm:.4f}, LR {lr:.4f}')
-                start_time = time.time()
-
-            previous_val_loss = None
-            # Evaluate the model at the end/beginning of each epoch (I'm not sure)
-            if current_epoch != data_loader.train_epoch:
-                val_loss = get_val_loss(model, data_loader.val_loader())
-                print(f'Validation loss: {val_loss}')
-                if previous_val_loss == None or previous_val_loss >= val_loss:
-                    previous_val_loss = val_loss
-                    print('Saving best model...')
-                    torch.save(model.state_dict(), 'best.pth')
-
-                print('Saving last model...')
-                torch.save(model.state_dict(), 'last.pth')
-                model.train()
-                current_epoch = data_loader.train_epoch
 
     #Save the last ever model
     torch.save(model.state_dict(), 'last.pth')
